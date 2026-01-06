@@ -13,7 +13,7 @@ npx -y gxe@latest AnEntrypoint/code-search "your search query"
 ```bash
 npx -y gxe@latest AnEntrypoint/code-search --mcp
 e.g.:
-claude mcp add -u user code-search -- npx -y gxe@latest AnEntrypoint/code-search --mcp
+claude mcp add -s user code-search -- npx -y gxe@latest AnEntrypoint/code-search --mcp
 ```
 
 ## Features
