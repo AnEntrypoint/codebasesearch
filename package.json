@@ -15,7 +15,7 @@
     "start": "node ./bin/code-search.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.1",
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "@xenova/transformers": "^2.6.0",
     "fast-glob": "^3.3.2",
     "vectordb": "^0.1.8"
