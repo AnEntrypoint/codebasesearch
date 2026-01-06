@@ -235,9 +235,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-async function main() {
+export async function startMcpServer() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
+}
+
+async function main() {
+  await startMcpServer();
 }
 
 main().catch((error) => {

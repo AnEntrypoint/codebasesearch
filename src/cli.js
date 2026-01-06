@@ -6,6 +6,7 @@ import { scanRepository } from './scanner.js';
 import { generateEmbeddings } from './embeddings.js';
 import { initStore, upsertChunks, closeStore } from './store.js';
 import { executeSearch, formatResults } from './search.js';
+import { startMcpServer } from '../mcp.js';
 
 async function isGitRepository(rootPath) {
   const gitDir = join(rootPath, '.git');
@@ -37,11 +38,10 @@ async function ensureIgnoreEntry(rootPath) {
 
 export async function run(args) {
   try {
-    // Parse arguments
+    // Start MCP server if no arguments provided
     if (args.length === 0) {
-      console.error('Usage: code-search <query>');
-      console.error('Example: code-search "authentication middleware"');
-      process.exit(1);
+      await startMcpServer();
+      return;
     }
 
     const query = args.join(' ');
