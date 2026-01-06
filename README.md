@@ -6,12 +6,12 @@ Ultra-simple semantic code search with Jina embeddings and LanceDB. Supports bot
 
 ### CLI
 ```bash
-npx -t gxe@latest AnEntrypoint/code-search "your search query"
+npx -y gxe@latest AnEntrypoint/code-search "your search query"
 ```
 
 ### MCP (for Claude Code & IDE plugins)
 ```bash
-npx -t gxe@latest AnEntrypoint/code-search --mcp
+npx -y gxe@latest AnEntrypoint/code-search --mcp
 ```
 
 ## Features
@@ -29,15 +29,15 @@ npx -t gxe@latest AnEntrypoint/code-search --mcp
 ### Search from CLI
 
 ```bash
-npx -t gxe@latest AnEntrypoint/code-search "authentication middleware"
-npx -t gxe@latest AnEntrypoint/code-search "database connection pool"
-npx -t gxe@latest AnEntrypoint/code-search "error handling"
+npx -y gxe@latest AnEntrypoint/code-search "authentication middleware"
+npx -y gxe@latest AnEntrypoint/code-search "database connection pool"
+npx -y gxe@latest AnEntrypoint/code-search "error handling"
 ```
 
 ### Search from custom repository
 
 ```bash
-npx -t gxe@latest AnEntrypoint/code-search --repo /path/to/repo "query"
+npx -y gxe@latest AnEntrypoint/code-search --repo /path/to/repo "query"
 ```
 
 ### MCP Tool (in Claude Code)
