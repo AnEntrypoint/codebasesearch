@@ -19,7 +19,7 @@ export async function initStore(dbPath) {
       uri: dbDir,
       mode: 'overwrite'
     });
-    console.log('Vector store initialized');
+    console.error('Vector store initialized');
     return true;
   } catch (e) {
     console.error('Failed to initialize vector store:', e.message);
@@ -79,7 +79,7 @@ export async function upsertChunks(chunks) {
     }
 
     tableRef = table;
-    console.log(`Indexed ${chunks.length} chunks`);
+    console.error(`Indexed ${chunks.length} chunks`);
   } catch (e) {
     console.error('Failed to upsert chunks:', e.message);
     throw e;
@@ -88,7 +88,7 @@ export async function upsertChunks(chunks) {
 
 export async function searchSimilar(queryEmbedding, limit = 10) {
   if (!tableRef) {
-    console.log('No index available');
+    console.error('No index available');
     return [];
   }
 
