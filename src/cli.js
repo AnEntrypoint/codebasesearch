@@ -1,6 +1,3 @@
-// Windows compatibility initialization - must be first
-import './init-windows.js';
-
 import { cwd } from 'process';
 import { join } from 'path';
 import { existsSync, readFileSync, appendFileSync, writeFileSync } from 'fs';
