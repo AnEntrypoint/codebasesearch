@@ -5,12 +5,30 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { cwd } from 'process';
 import { join, resolve } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync, appendFileSync, writeFileSync } from 'fs';
 import { loadIgnorePatterns } from './src/ignore-parser.js';
 import { scanRepository } from './src/scanner.js';
 import { generateEmbeddings } from './src/embeddings.js';
 import { initStore, upsertChunks, closeStore } from './src/store.js';
 import { executeSearch } from './src/search.js';
+
+async function ensureIgnoreEntry(rootPath) {
+  const gitignorePath = join(rootPath, '.gitignore');
+  const entry = '.code-search/';
+
+  try {
+    if (existsSync(gitignorePath)) {
+      const content = readFileSync(gitignorePath, 'utf8');
+      if (!content.includes(entry)) {
+        appendFileSync(gitignorePath, `\n${entry}`);
+      }
+    } else {
+      writeFileSync(gitignorePath, `${entry}\n`);
+    }
+  } catch (e) {
+    // Ignore write errors, proceed with search anyway
+  }
+}
 
 class CodeSearchManager {
   async search(repositoryPath, query) {
@@ -24,6 +42,9 @@ class CodeSearchManager {
     }
 
     try {
+      // Ensure .code-search/ is in .gitignore
+      await ensureIgnoreEntry(absolutePath);
+
       // Load ignore patterns
       const ignorePatterns = loadIgnorePatterns(absolutePath);
       const dbPath = join(absolutePath, '.code-search');

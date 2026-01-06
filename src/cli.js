@@ -1,6 +1,6 @@
 import { cwd } from 'process';
 import { join } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync, appendFileSync, writeFileSync } from 'fs';
 import { loadIgnorePatterns } from './ignore-parser.js';
 import { scanRepository } from './scanner.js';
 import { generateEmbeddings } from './embeddings.js';
@@ -13,6 +13,24 @@ async function isGitRepository(rootPath) {
     return existsSync(gitDir);
   } catch {
     return false;
+  }
+}
+
+async function ensureIgnoreEntry(rootPath) {
+  const gitignorePath = join(rootPath, '.gitignore');
+  const entry = '.code-search/';
+
+  try {
+    if (existsSync(gitignorePath)) {
+      const content = readFileSync(gitignorePath, 'utf8');
+      if (!content.includes(entry)) {
+        appendFileSync(gitignorePath, `\n${entry}`);
+      }
+    } else {
+      writeFileSync(gitignorePath, `${entry}\n`);
+    }
+  } catch (e) {
+    // Ignore write errors, proceed with search anyway
   }
 }
 
@@ -37,6 +55,9 @@ export async function run(args) {
     if (!isGit) {
       console.warn('Warning: Not a git repository. Indexing current directory anyway.\n');
     }
+
+    // Ensure .code-search/ is in .gitignore
+    await ensureIgnoreEntry(rootPath);
 
     // Load ignore patterns
     const ignorePatterns = loadIgnorePatterns(rootPath);
