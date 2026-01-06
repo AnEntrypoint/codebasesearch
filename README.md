@@ -12,6 +12,8 @@ npx -y gxe@latest AnEntrypoint/code-search "your search query"
 ### MCP (for Claude Code & IDE plugins)
 ```bash
 npx -y gxe@latest AnEntrypoint/code-search --mcp
+e.g.:
+claude mcp add -u user code-search -- npx -y gxe@latest AnEntrypoint/code-search --mcp
 ```
 
 ## Features
