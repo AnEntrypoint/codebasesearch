@@ -1,20 +1,19 @@
 import { pipeline, env } from '@xenova/transformers';
 
-// Configure transformers to use WASM backend only (pure JS, no native modules)
+// Configure transformers for Windows compatibility
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
 
-// Disable ONNX Runtime to force WASM backend
-env.onnxOptions = {
-  providers: [],
-  executionProviders: []
-};
-
-// Force WASM backend - disable node backend
+// Use Node.js backend with onnxruntime-node (available on Windows)
 try {
-  env.backends.onnx.ort = null;
+  // This will be available if onnxruntime-node is installed
+  env.backends.onnx.ort = (await import('onnxruntime-node')).default;
 } catch (e) {
-  // Ignore if not available
+  // Fall back to WASM if Node backend not available
+  env.onnxOptions = {
+    providers: [],
+    executionProviders: []
+  };
 }
 
 let modelCache = null;
