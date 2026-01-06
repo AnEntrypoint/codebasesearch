@@ -1,20 +1,4 @@
-import { pipeline, env } from '@xenova/transformers';
-
-// Configure transformers for Windows compatibility
-env.allowLocalModels = false;
-env.allowRemoteModels = true;
-
-// Use Node.js backend with onnxruntime-node (available on Windows)
-try {
-  // This will be available if onnxruntime-node is installed
-  env.backends.onnx.ort = (await import('onnxruntime-node')).default;
-} catch (e) {
-  // Fall back to WASM if Node backend not available
-  env.onnxOptions = {
-    providers: [],
-    executionProviders: []
-  };
-}
+import { pipeline } from '@huggingface/transformers';
 
 let modelCache = null;
 
