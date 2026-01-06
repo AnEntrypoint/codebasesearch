@@ -1,8 +1,21 @@
 import { pipeline, env } from '@xenova/transformers';
 
-// Configure transformers to use pure JS backend (no native modules)
+// Configure transformers to use WASM backend only (pure JS, no native modules)
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
+
+// Disable ONNX Runtime to force WASM backend
+env.onnxOptions = {
+  providers: [],
+  executionProviders: []
+};
+
+// Force WASM backend - disable node backend
+try {
+  env.backends.onnx.ort = null;
+} catch (e) {
+  // Ignore if not available
+}
 
 let modelCache = null;
 

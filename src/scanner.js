@@ -46,9 +46,11 @@ function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
     for (const entry of entries) {
       const fullPath = join(dirPath, entry.name);
       const relPath = relativePath ? join(relativePath, entry.name) : entry.name;
+      // Normalize to forward slashes for consistent ignore pattern matching
+      const normalizedRelPath = relPath.replace(/\\/g, '/');
 
       // Check if should ignore
-      if (shouldIgnore(relPath, ignorePatterns)) {
+      if (shouldIgnore(normalizedRelPath, ignorePatterns)) {
         continue;
       }
 
@@ -60,7 +62,7 @@ function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
         if (SUPPORTED_EXTENSIONS.has(ext)) {
           files.push({
             fullPath,
-            relativePath: relPath
+            relativePath: normalizedRelPath
           });
         }
       }

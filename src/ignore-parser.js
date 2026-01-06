@@ -101,7 +101,9 @@ export function loadIgnorePatterns(rootPath) {
 }
 
 export function shouldIgnore(filePath, ignorePatterns) {
-  const pathParts = filePath.split('/');
+  // Normalize path to forward slashes for consistent matching across platforms
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const pathParts = normalizedPath.split('/');
 
   for (const pattern of ignorePatterns) {
     // Check if any part of the path matches the pattern
@@ -112,10 +114,10 @@ export function shouldIgnore(filePath, ignorePatterns) {
     }
 
     // Check if pattern matches the full path or a component
-    if (filePath.includes(pattern)) {
+    if (normalizedPath.includes(pattern)) {
       // More specific matching for paths like "node_modules/something"
       const regex = new RegExp(`(^|/)${pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&')}(/|$)`);
-      if (regex.test(filePath)) {
+      if (regex.test(normalizedPath)) {
         return true;
       }
     }

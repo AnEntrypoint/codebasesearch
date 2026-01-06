@@ -12,13 +12,16 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "start": "node ./bin/code-search.js"
+    "start": "node ./bin/code-search.js",
+    "postinstall": "node scripts/patch-transformers.js"
   },
   "dependencies": {
+    "@lancedb/vectordb-win32-x64-msvc": "^0.21.2",
     "@modelcontextprotocol/sdk": "1.0.0",
     "@xenova/transformers": "^2.6.0",
     "fast-glob": "^3.3.2",
-    "vectordb": "^0.1.8"
+    "sharp": "^0.34.5",
+    "vectordb": "^0.21.2"
   },
   "keywords": [
     "code-search",

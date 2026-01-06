@@ -14,7 +14,11 @@ export async function initStore(dbPath) {
 
   try {
     // Connect to LanceDB (embedded, file-based, no network)
-    dbConnection = await connect(dbDir);
+    // Use absolute path for Windows compatibility
+    dbConnection = await connect({
+      uri: dbDir,
+      mode: 'overwrite'
+    });
     console.log('Vector store initialized');
     return true;
   } catch (e) {
