@@ -12,7 +12,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "search": "node ./bin/code-search.js"
+    "start": "node ./bin/code-search.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.1",
