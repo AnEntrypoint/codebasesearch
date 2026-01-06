@@ -1,4 +1,9 @@
-import { pipeline } from '@xenova/transformers';
+import { pipeline, env } from '@xenova/transformers';
+
+// Configure transformers to use pure JS backend (no native modules)
+// This ensures Windows compatibility when native modules fail to build
+env.allowLocalModels = false;
+env.allowRemoteModels = true;
 
 let modelCache = null;
 
