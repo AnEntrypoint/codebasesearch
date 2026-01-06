@@ -7,7 +7,7 @@ async function getModel() {
     return modelCache;
   }
 
-  console.log('Loading Jina embeddings model (this may take a moment on first run)...');
+  console.error('Loading Jina embeddings model (this may take a moment on first run)...');
   modelCache = await pipeline(
     'feature-extraction',
     'Xenova/jina-embeddings-v2-small-en'

@@ -258,11 +258,19 @@ export async function startMcpServer() {
   await server.connect(transport);
 }
 
+const isMain = process.argv[1] && (
+  process.argv[1] === fileURLToPath(import.meta.url) || 
+  process.argv[1].endsWith('mcp.js') || 
+  process.argv[1].endsWith('code-search-mcp')
+);
+
+if (isMain) {
+  main().catch((error) => {
+    console.error('Server error:', error);
+    process.exit(1);
+  });
+}
+
 async function main() {
   await startMcpServer();
 }
-
-main().catch((error) => {
-  console.error('Server error:', error);
-  process.exit(1);
-});

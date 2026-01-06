@@ -6,7 +6,7 @@ export async function executeSearch(query, limit = 10) {
     throw new Error('Query cannot be empty');
   }
 
-  console.log(`Searching for: "${query}"`);
+  console.error(`Searching for: "${query}"`);
 
   // Generate embedding for query
   const queryEmbedding = await generateSingleEmbedding(query);
