@@ -25,7 +25,14 @@ function getHardcodedIgnores() {
     '.next', '.nuxt', '.cache', '.parcel-cache', '.vite', '.turbo',
     'coverage', '.nyc_output', '.firebase', '.terraform', '.aws',
     '.azure', '.gcloud', '.vscode', '.idea', '.vs', 'bin', 'obj',
-    '.gradle', '.mvn', 'Pods', 'DerivedData', '.bundle'
+    '.gradle', '.mvn', 'Pods', 'DerivedData', '.bundle',
+    '.yarn', '.pnp', 'pnpm-lock.yaml', '.pnpm-store',
+    '.tox', '.eggs', '*.egg-info', '.venv', 'venv', 'env',
+    '.tsc', '.eslintcache', '.stylelintcache', '.parcel-cache',
+    'temp', 'tmp', '.tmp', '.DS_Store', 'Thumbs.db',
+    '.swp', '.swo', '*.swp', '*.swo', '.tern-port',
+    'dist-server', 'out-tsc', '.cache', '.parcel-cache',
+    'typings', '.env', '.env.local', '.env.*.local'
   ]);
 }
 

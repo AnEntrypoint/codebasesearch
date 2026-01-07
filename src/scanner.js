@@ -3,38 +3,52 @@ import { join, relative } from 'path';
 import { shouldIgnore } from './ignore-parser.js';
 
 const SUPPORTED_EXTENSIONS = new Set([
-  '.js', '.ts', '.tsx', '.jsx',
-  '.py', '.pyw',
+  '.js', '.ts', '.tsx', '.jsx', '.mjs', '.cjs',
+  '.py', '.pyw', '.pyi',
   '.go',
   '.rs',
   '.java', '.kt', '.scala',
-  '.cpp', '.cc', '.cxx', '.h', '.hpp',
+  '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hxx',
   '.c', '.h',
-  '.rb',
+  '.rb', '.erb',
   '.php',
-  '.cs',
+  '.cs', '.csx',
   '.swift',
   '.m', '.mm',
-  '.sh', '.bash',
+  '.sh', '.bash', '.zsh',
   '.sql',
   '.r', '.R',
   '.lua',
-  '.pl',
+  '.pl', '.pm',
   '.groovy',
   '.gradle',
-  '.xml',
-  '.json',
+  '.xml', '.xsd',
+  '.json', '.jsonc',
   '.yaml', '.yml',
   '.toml',
   '.html', '.htm',
-  '.css', '.scss', '.sass',
-  '.vue'
+  '.css', '.scss', '.sass', '.less',
+  '.vue', '.svelte',
+  '.md', '.markdown'
 ]);
 
 function getFileExtension(filePath) {
   const lastDot = filePath.lastIndexOf('.');
   if (lastDot === -1) return '';
   return filePath.substring(lastDot).toLowerCase();
+}
+
+function isBinaryFile(filePath) {
+  const binaryExtensions = new Set([
+    '.zip', '.tar', '.gz', '.rar', '.7z', '.iso',
+    '.exe', '.dll', '.so', '.dylib', '.bin',
+    '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.ico',
+    '.mp3', '.mp4', '.mov', '.avi', '.flv', '.m4a',
+    '.pdf', '.doc', '.docx', '.xls', '.xlsx',
+    '.woff', '.woff2', '.ttf', '.otf', '.eot'
+  ]);
+  const ext = getFileExtension(filePath);
+  return binaryExtensions.has(ext);
 }
 
 function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
@@ -58,12 +72,22 @@ function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
         // Recursively walk subdirectories
         files.push(...walkDirectory(fullPath, ignorePatterns, relPath));
       } else if (entry.isFile()) {
-        const ext = getFileExtension(entry.name);
-        if (SUPPORTED_EXTENSIONS.has(ext)) {
-          files.push({
-            fullPath,
-            relativePath: normalizedRelPath
-          });
+        if (!isBinaryFile(entry.name)) {
+          const ext = getFileExtension(entry.name);
+          if (SUPPORTED_EXTENSIONS.has(ext)) {
+            try {
+              const stat = statSync(fullPath);
+              const maxSize = 5 * 1024 * 1024;
+              if (stat.size <= maxSize) {
+                files.push({
+                  fullPath,
+                  relativePath: normalizedRelPath,
+                  size: stat.size
+                });
+              }
+            } catch (e) {
+            }
+          }
         }
       }
     }
