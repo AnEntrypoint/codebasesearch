@@ -14,6 +14,11 @@ if (fs.existsSync(distPath)) {
     content = content.replace(/import \* as __WEBPACK_EXTERNAL_MODULE_sharp__ from "sharp";\n/, '// SHARP_REMOVED_FOR_WINDOWS_COMPATIBILITY\n');
     content = content.replace(/module\.exports = __WEBPACK_EXTERNAL_MODULE_sharp__;/g, 'module.exports = {};');
     content = content.replace(/} else \{\s*throw new Error\('Unable to load image processing library\.'\);\s*\}/, '} else {\n    loadImageFunction = async () => { throw new Error(\'Image processing unavailable\'); };\n}');
+
+    // Disable onnxruntime-node to avoid memory allocation issues on Windows
+    content = content.replace(/import \* as __WEBPACK_EXTERNAL_MODULE_onnxruntime_node[^ ]* from "onnxruntime-node";\n/g, '// ONNXRUNTIME_NODE_DISABLED_FOR_WINDOWS\n');
+    content = content.replace(/module\.exports = __WEBPACK_EXTERNAL_MODULE_onnxruntime_node[^;]*;/g, 'module.exports = null;');
+
     try { fs.writeFileSync(distPath, content); } catch (e) {}
   }
 }

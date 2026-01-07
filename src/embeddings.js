@@ -1,4 +1,12 @@
-import { pipeline } from '@huggingface/transformers';
+import { pipeline, env } from '@huggingface/transformers';
+
+// Force WASM backend only - disable onnxruntime-node to avoid memory issues on Windows
+try {
+  env.backends.onnx.wasm.numThreads = 1;
+  env.backends.onnx.ort = null;
+} catch (e) {
+  // Continue even if env config fails
+}
 
 let modelCache = null;
 
@@ -7,10 +15,10 @@ async function getModel() {
     return modelCache;
   }
 
-  console.error('Loading Jina embeddings model (this may take a moment on first run)...');
+  console.error('Loading embeddings model (this may take a moment on first run)...');
   modelCache = await pipeline(
     'feature-extraction',
-    'Xenova/jina-embeddings-v2-small-en'
+    'Xenova/universal-minilm-l6-v2'
   );
 
   return modelCache;
