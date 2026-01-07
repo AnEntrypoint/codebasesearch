@@ -88,6 +88,19 @@ export async function upsertChunks(chunks) {
 
 export async function searchSimilar(queryEmbedding, limit = 10) {
   if (!tableRef) {
+    if (!dbConnection) {
+      console.error('No database connection');
+      return [];
+    }
+    try {
+      await getTable();
+    } catch (e) {
+      console.error('No index available');
+      return [];
+    }
+  }
+
+  if (!tableRef) {
     console.error('No index available');
     return [];
   }
