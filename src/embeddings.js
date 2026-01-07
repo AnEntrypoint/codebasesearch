@@ -16,10 +16,15 @@ async function getModel() {
   }
 
   console.error('Loading embeddings model (this may take a moment on first run)...');
-  modelCache = await pipeline(
-    'feature-extraction',
-    'Xenova/universal-minilm-l6-v2'
-  );
+  try {
+    modelCache = await pipeline(
+      'feature-extraction',
+      'Xenova/all-minilm-l6-v2'
+    );
+  } catch (e) {
+    console.error('Error loading model:', e.message);
+    throw e;
+  }
 
   return modelCache;
 }

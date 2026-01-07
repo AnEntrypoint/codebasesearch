@@ -101,15 +101,19 @@ export async function searchSimilar(queryEmbedding, limit = 10) {
       .limit(limit)
       .execute();
 
-    return results.map(result => ({
-      file_path: result.file_path,
-      chunk_index: result.chunk_index,
-      content: result.content,
-      line_start: result.line_start,
-      line_end: result.line_end,
-      distance: result._distance || 0,
-      score: 1 - Math.max(0, Math.min(1, result._distance || 0)) // Normalize to 0-1
-    }));
+    return results.map(result => {
+      const distance = result._distance !== undefined ? result._distance : (result.distance || 0);
+      const score = distance !== null && distance !== undefined ? 1 / (1 + distance) : 0;
+      return {
+        file_path: result.file_path,
+        chunk_index: result.chunk_index,
+        content: result.content,
+        line_start: result.line_start,
+        line_end: result.line_end,
+        distance: distance,
+        score: score
+      };
+    });
   } catch (e) {
     console.error('Search failed:', e.message);
     return [];
