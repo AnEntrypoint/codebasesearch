@@ -1,4 +1,7 @@
 import { pipeline, env } from '@huggingface/transformers';
+import { rmSync, existsSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 
 // Force WASM backend only - disable onnxruntime-node to avoid memory issues on Windows
 try {
@@ -9,19 +12,46 @@ try {
 }
 
 let modelCache = null;
+let cacheCleared = false;
 
-async function getModel() {
+function clearModelCache() {
+  const cacheDir = join(homedir(), '.cache', 'huggingface', 'transformers');
+  try {
+    if (existsSync(cacheDir)) {
+      rmSync(cacheDir, { recursive: true, force: true });
+      console.error('Cleared corrupted model cache');
+    }
+  } catch (e) {
+    console.error('Warning: could not clear cache:', e.message);
+  }
+}
+
+async function getModel(retryOnError = true) {
   if (modelCache) {
     return modelCache;
   }
 
   console.error('Loading embeddings model (this may take a moment on first run)...');
+
+  const modelLoadPromise = pipeline(
+    'feature-extraction',
+    'Xenova/all-minilm-l6-v2'
+  );
+
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Model loading timeout after 5 minutes')), 300000)
+  );
+
   try {
-    modelCache = await pipeline(
-      'feature-extraction',
-      'Xenova/all-minilm-l6-v2'
-    );
+    modelCache = await Promise.race([modelLoadPromise, timeoutPromise]);
   } catch (e) {
+    if (retryOnError && !cacheCleared && (e.message.includes('Protobuf') || e.message.includes('parsing'))) {
+      console.error('Detected corrupted cache, clearing and retrying...');
+      cacheCleared = true;
+      clearModelCache();
+      modelCache = null;
+      return getModel(false);
+    }
     console.error('Error loading model:', e.message);
     throw e;
   }
