@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
-    "@lancedb/vectordb-win32-x64-msvc": "^0.21.2",
     "@modelcontextprotocol/sdk": "1.0.0",
     "apache-arrow": "^14.0.0",
     "fast-glob": "^3.3.2",
