@@ -69,24 +69,21 @@ function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
       }
 
       if (entry.isDirectory()) {
-        // Recursively walk subdirectories
         files.push(...walkDirectory(fullPath, ignorePatterns, relPath));
       } else if (entry.isFile()) {
-        if (!isBinaryFile(entry.name)) {
-          const ext = getFileExtension(entry.name);
-          if (SUPPORTED_EXTENSIONS.has(ext)) {
-            try {
-              const stat = statSync(fullPath);
-              const maxSize = 5 * 1024 * 1024;
-              if (stat.size <= maxSize) {
-                files.push({
-                  fullPath,
-                  relativePath: normalizedRelPath,
-                  size: stat.size
-                });
-              }
-            } catch (e) {
+        const ext = getFileExtension(entry.name);
+        if (SUPPORTED_EXTENSIONS.has(ext) && !isBinaryFile(entry.name)) {
+          try {
+            const stat = entry.isSymbolicLink ? null : statSync(fullPath);
+            const maxSize = 5 * 1024 * 1024;
+            if (!stat || stat.size <= maxSize) {
+              files.push({
+                fullPath,
+                relativePath: normalizedRelPath,
+                mtime: stat ? stat.mtime.getTime() : Date.now()
+              });
             }
+          } catch (e) {
           }
         }
       }
@@ -130,7 +127,7 @@ export function scanRepository(rootPath, ignorePatterns) {
   for (const file of files) {
     try {
       const content = readFileSync(file.fullPath, 'utf8');
-      const mtime = statSync(file.fullPath).mtime.getTime();
+      const mtime = file.mtime;
 
       // For small files, treat as single chunk
       if (content.split('\n').length <= 1000) {
