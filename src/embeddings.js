@@ -15,15 +15,21 @@ let modelCache = null;
 let cacheCleared = false;
 
 function clearModelCache() {
-  const cacheDir = join(homedir(), '.cache', 'huggingface', 'transformers');
-  try {
-    if (existsSync(cacheDir)) {
-      rmSync(cacheDir, { recursive: true, force: true });
-      console.error('Cleared corrupted model cache');
+  const cacheDirs = [
+    join(homedir(), '.cache', 'huggingface', 'transformers'),
+    join(process.cwd(), 'node_modules', '@huggingface', 'transformers', '.cache'),
+  ];
+
+  for (const cacheDir of cacheDirs) {
+    try {
+      if (existsSync(cacheDir)) {
+        rmSync(cacheDir, { recursive: true, force: true });
+      }
+    } catch (e) {
+      // Ignore errors, continue with next cache dir
     }
-  } catch (e) {
-    console.error('Warning: could not clear cache:', e.message);
   }
+  console.error('Cleared corrupted model cache');
 }
 
 async function getModel(retryOnError = true) {
