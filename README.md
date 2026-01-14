@@ -25,6 +25,8 @@ claude mcp add -s user code-search -- npx -y gxe@latest AnEntrypoint/code-search
 - **Single-shot execution** - no persistent processes, no background daemons
 - **MCP protocol support** - integrates with Claude Code and other MCP-compatible tools
 - **Auto-gitignore** - automatically adds `.code-search/` to .gitignore on first run
+- **Auto-recover from corruption** - automatically detects and clears corrupted model cache on Protobuf errors
+- **Performance optimized** - 5MB file size limits, smart chunking, batch embedding generation
 
 ## Usage
 
@@ -41,6 +43,8 @@ npx -y gxe@latest AnEntrypoint/code-search "error handling"
 ```bash
 npx -y gxe@latest AnEntrypoint/code-search --repo /path/to/repo "query"
 ```
+
+**Default Search Directory**: When no path is specified, searches the **current working directory** (project root), not the Claude Code plugins directory. In Claude Code, this defaults to your project context.
 
 ### MCP Tool (in Claude Code)
 
@@ -79,6 +83,15 @@ First run downloads the Jina model (~120MB) to `~/.cache/huggingface`.
 - **First run**: ~30-60s (downloads model + indexes repository)
 - **Subsequent runs**: Sub-second search queries (index already exists)
 - **Large repos** (10k+ files): May take 1-2 minutes for full indexing
+
+### Technical Optimizations
+
+- **5MB file size limit**: Files larger than 5MB are skipped to prevent memory issues
+- **Smart chunking**: Files >1000 lines auto-split into overlapping chunks (200-line overlap) for better semantic context
+- **Batch embedding**: Chunks processed in batches of 32 for efficient API usage
+- **Binary detection**: 47 binary file extensions ignored (.zip, .exe, .jpg, .mp4, etc.)
+- **Auto-recovery**: Detects Protobuf parsing errors in cached models and auto-clears corrupted cache
+- **5-minute timeout**: Model loading has timeout to prevent indefinite hangs
 
 ## Installation Details
 
