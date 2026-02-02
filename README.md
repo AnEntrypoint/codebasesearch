@@ -125,3 +125,4 @@ All processing happens locally. No data is sent to external servers. The Jina mo
 ## License
 
 MIT
+# Triggered npm publishing
