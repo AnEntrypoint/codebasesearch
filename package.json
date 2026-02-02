@@ -4,8 +4,8 @@
   "description": "Ultra-simple code search tool with Jina embeddings, LanceDB, and MCP protocol support",
   "type": "module",
   "bin": {
-    "code-search": "./bin/code-search.js",
-    "code-search-mcp": "./mcp.js"
+    "codebasesearch": "./bin/code-search.js",
+    "codebasesearch-mcp": "./mcp.js"
   },
   "main": "src/cli.js",
   "engines": {
