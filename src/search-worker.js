@@ -20,16 +20,16 @@ async function initializeIndex(repositoryPath) {
     const chunks = scanRepository(absolutePath, ignorePatterns);
 
     if (chunks.length === 0) {
-      return { error: 'No code chunks found', chunks: [], index: null };
+      return { error: 'No code chunks found', chunks: [], indexData: null };
     }
 
-    const index = buildTextIndex(chunks);
-    const indexData = { chunks, index };
-    indexCache.set(cacheKey, indexData);
+    const indexData = buildTextIndex(chunks);
+    const result = { chunks, indexData };
+    indexCache.set(cacheKey, result);
 
-    return indexData;
+    return result;
   } catch (error) {
-    return { error: error.message, chunks: [], index: null };
+    return { error: error.message, chunks: [], indexData: null };
   }
 }
 
@@ -47,7 +47,7 @@ async function performSearch(repositoryPath, query) {
       return { error: indexData.error, results: [] };
     }
 
-    const results = searchText(query, indexData.chunks, indexData.index);
+    const results = searchText(query, indexData.chunks, indexData.indexData);
 
     return {
       query,
