@@ -8,6 +8,14 @@
     "codebasesearch-mcp": "./mcp.js"
   },
   "main": "src/cli.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnEntrypoint/codebasesearch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AnEntrypoint/codebasesearch/issues"
+  },
+  "homepage": "https://github.com/AnEntrypoint/codebasesearch#readme",
   "engines": {
     "node": ">=18.0.0"
   },
