@@ -20,8 +20,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "start": "node ./bin/code-search.js",
-    "postinstall": "node scripts/patch-transformers.js"
+    "start": "node ./bin/code-search.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",

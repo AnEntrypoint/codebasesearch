@@ -22,7 +22,8 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { cwd } from 'process';
-import { join, existsSync, readFileSync, appendFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
+import { existsSync, readFileSync, appendFileSync, writeFileSync } from 'fs';
 import { supervisor } from './src/supervisor.js';
 
 async function ensureIgnoreEntry(rootPath) {
