@@ -1,4 +1,4 @@
-# code-search
+# codebasesearch
 
 Ultra-simple semantic code search with Jina embeddings and LanceDB. Supports both CLI and MCP protocol interfaces.
 
@@ -6,17 +6,17 @@ Ultra-simple semantic code search with Jina embeddings and LanceDB. Supports bot
 
 ### CLI
 ```bash
-bunx code-search "your search query"
+bunx codebasesearch "your search query"
 ```
 
 ### MCP (for Claude Code & IDE plugins)
 ```bash
-bunx code-search --mcp
+bunx codebasesearch --mcp
 ```
 
 Example:
 ```bash
-claude mcp add -s user code-search -- bunx code-search
+claude mcp add -s user codebasesearch -- bunx codebasesearch
 ```
 
 ## Features
@@ -36,15 +36,15 @@ claude mcp add -s user code-search -- bunx code-search
 ### Search from CLI
 
 ```bash
-bunx code-search "authentication middleware"
-bunx code-search "database connection pool"
-bunx code-search "error handling"
+bunx codebasesearch "authentication middleware"
+bunx codebasesearch "database connection pool"
+bunx codebasesearch "error handling"
 ```
 
 ### Search from custom repository
 
 ```bash
-bunx code-search --repo /path/to/repo "query"
+bunx codebasesearch --repo /path/to/repo "query"
 ```
 
 **Default Search Directory**: When no path is specified, searches the **current working directory** (project root), not the Claude Code plugins directory. In Claude Code, this defaults to your project context.
