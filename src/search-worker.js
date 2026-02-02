@@ -3,9 +3,35 @@ import { resolve } from 'path';
 import { existsSync } from 'fs';
 import { loadIgnorePatterns } from './ignore-parser.js';
 import { scanRepository } from './scanner.js';
-import { generateEmbeddings } from './embeddings.js';
-import { initStore, upsertChunks, closeStore } from './store.js';
-import { executeSearch } from './search.js';
+import { buildTextIndex, searchText } from './text-search.js';
+
+let indexCache = new Map();
+
+async function initializeIndex(repositoryPath) {
+  const absolutePath = resolve(repositoryPath);
+  const cacheKey = absolutePath;
+
+  if (indexCache.has(cacheKey)) {
+    return indexCache.get(cacheKey);
+  }
+
+  try {
+    const ignorePatterns = loadIgnorePatterns(absolutePath);
+    const chunks = scanRepository(absolutePath, ignorePatterns);
+
+    if (chunks.length === 0) {
+      return { error: 'No code chunks found', chunks: [], index: null };
+    }
+
+    const index = buildTextIndex(chunks);
+    const indexData = { chunks, index };
+    indexCache.set(cacheKey, indexData);
+
+    return indexData;
+  } catch (error) {
+    return { error: error.message, chunks: [], index: null };
+  }
+}
 
 async function performSearch(repositoryPath, query) {
   const absolutePath = resolve(repositoryPath);
@@ -15,40 +41,19 @@ async function performSearch(repositoryPath, query) {
   }
 
   try {
-    const ignorePatterns = loadIgnorePatterns(absolutePath);
-    const dbPath = resolve(absolutePath, '.code-search');
+    const indexData = await initializeIndex(absolutePath);
 
-    await initStore(dbPath);
-
-    const chunks = scanRepository(absolutePath, ignorePatterns);
-    if (chunks.length === 0) {
-      await closeStore();
-      return { query, results: [], message: 'No code chunks found' };
+    if (indexData.error) {
+      return { error: indexData.error, results: [] };
     }
 
-    const batchSize = 32;
-    const allEmbeddings = [];
-
-    for (let i = 0; i < chunks.length; i += batchSize) {
-      const batchTexts = chunks.slice(i, i + batchSize).map(c => c.content);
-      const batchEmbeddings = await generateEmbeddings(batchTexts);
-      allEmbeddings.push(...batchEmbeddings);
-    }
-
-    const chunksWithEmbeddings = chunks.map((chunk, idx) => ({
-      ...chunk,
-      vector: allEmbeddings[idx],
-    }));
-
-    await upsertChunks(chunksWithEmbeddings);
-    const results = await executeSearch(query);
-    await closeStore();
+    const results = searchText(query, indexData.chunks, indexData.index);
 
     return {
       query,
       repository: absolutePath,
       resultsCount: results.length,
-      results: results.map((result, idx) => ({
+      results: results.slice(0, 10).map((result, idx) => ({
         rank: idx + 1,
         file: result.file_path,
         lines: `${result.line_start}-${result.line_end}`,
@@ -57,7 +62,6 @@ async function performSearch(repositoryPath, query) {
       })),
     };
   } catch (error) {
-    await closeStore().catch(() => {});
     return { error: error.message, results: [] };
   }
 }
