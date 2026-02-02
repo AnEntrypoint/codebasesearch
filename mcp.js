@@ -22,13 +22,8 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { cwd } from 'process';
-import { join, resolve } from 'path';
-import { existsSync, readFileSync, appendFileSync, writeFileSync } from 'fs';
-import { loadIgnorePatterns } from './src/ignore-parser.js';
-import { scanRepository } from './src/scanner.js';
-import { generateEmbeddings } from './src/embeddings.js';
-import { initStore, upsertChunks, closeStore } from './src/store.js';
-import { executeSearch } from './src/search.js';
+import { join, existsSync, readFileSync, appendFileSync, writeFileSync } from 'fs';
+import { supervisor } from './src/supervisor.js';
 
 async function ensureIgnoreEntry(rootPath) {
   const gitignorePath = join(rootPath, '.gitignore');
@@ -44,95 +39,9 @@ async function ensureIgnoreEntry(rootPath) {
       writeFileSync(gitignorePath, `${entry}\n`);
     }
   } catch (e) {
-    // Ignore write errors, proceed with search anyway
+    // Ignore write errors
   }
 }
-
-class CodeSearchManager {
-  async search(repositoryPath, query) {
-    const absolutePath = resolve(repositoryPath);
-
-    if (!existsSync(absolutePath)) {
-      return {
-        error: `Repository path not found: ${absolutePath}`,
-        results: [],
-      };
-    }
-
-    try {
-      // Ensure .code-search/ is in .gitignore
-      await ensureIgnoreEntry(absolutePath);
-
-      // Load ignore patterns
-      const ignorePatterns = loadIgnorePatterns(absolutePath);
-      const dbPath = join(absolutePath, '.code-search');
-
-      // Initialize store
-      await initStore(dbPath);
-
-      // Scan repository
-      const chunks = scanRepository(absolutePath, ignorePatterns);
-
-      if (chunks.length === 0) {
-        await closeStore();
-        return {
-          query,
-          results: [],
-          message: 'No code chunks found in repository',
-        };
-      }
-
-      // Generate embeddings in batches
-      const batchSize = 32;
-      const chunkTexts = chunks.map(c => c.content);
-      const allEmbeddings = [];
-
-      for (let i = 0; i < chunkTexts.length; i += batchSize) {
-        const batchTexts = chunkTexts.slice(i, i + batchSize);
-        const batchEmbeddings = await generateEmbeddings(batchTexts);
-        allEmbeddings.push(...batchEmbeddings);
-      }
-
-      // Create chunks with embeddings
-      const chunksWithEmbeddings = chunks.map((chunk, idx) => ({
-        ...chunk,
-        vector: allEmbeddings[idx],
-      }));
-
-      // Upsert to store
-      await upsertChunks(chunksWithEmbeddings);
-
-      // Execute search
-      const results = await executeSearch(query);
-
-      // Format results
-      const formattedResults = results.map((result, idx) => ({
-        rank: idx + 1,
-        file: result.file_path,
-        lines: `${result.line_start}-${result.line_end}`,
-        score: (result.score * 100).toFixed(1),
-        snippet: result.content.split('\n').slice(0, 3).join('\n'),
-      }));
-
-      await closeStore();
-
-      return {
-        query,
-        repository: absolutePath,
-        resultsCount: formattedResults.length,
-        results: formattedResults,
-      };
-    } catch (error) {
-      await closeStore().catch(() => {});
-      return {
-        error: error.message,
-        results: [],
-      };
-    }
-  }
-}
-
-const manager = new CodeSearchManager();
 
 const server = new Server(
   {
@@ -205,7 +114,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   try {
-    const result = await manager.search(repositoryPath, query);
+    await ensureIgnoreEntry(repositoryPath);
+    const result = await supervisor.sendRequest({
+      type: 'search',
+      query,
+      repositoryPath,
+    });
 
     if (result.error) {
       return {
@@ -267,9 +181,16 @@ const isMain = process.argv[1] && (
 if (isMain) {
   main().catch((error) => {
     console.error('Server error:', error);
-    process.exit(1);
   });
 }
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+});
 
 async function main() {
   await startMcpServer();
