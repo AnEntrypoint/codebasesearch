@@ -1,6 +1,6 @@
 {
   "name": "codebasesearch",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Ultra-simple code search tool with Jina embeddings, LanceDB, and MCP protocol support",
   "type": "module",
   "bin": {
