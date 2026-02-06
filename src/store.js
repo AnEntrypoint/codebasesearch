@@ -4,6 +4,7 @@ import { mkdirSync, existsSync } from 'fs';
 
 let dbConnection = null;
 let tableRef = null;
+let isFirstBatch = true;
 
 export async function initStore(dbPath) {
   // Ensure directory exists
@@ -19,6 +20,7 @@ export async function initStore(dbPath) {
       uri: dbDir,
       mode: 'overwrite'
     });
+    isFirstBatch = true;
     console.error('Vector store initialized');
     return true;
   } catch (e) {
@@ -68,14 +70,24 @@ export async function upsertChunks(chunks) {
   try {
     let table = null;
 
-    // Try to open existing table
-    try {
-      table = await dbConnection.openTable(tableName);
-      // Overwrite existing table with new data
-      await table.overwrite(data);
-    } catch (e) {
-      // Table doesn't exist, create new one
-      table = await dbConnection.createTable(tableName, data);
+    if (isFirstBatch) {
+      // First batch: try to open existing table, or create new one
+      try {
+        table = await dbConnection.openTable(tableName);
+        await table.overwrite(data);
+      } catch (e) {
+        table = await dbConnection.createTable(tableName, data);
+      }
+      isFirstBatch = false;
+    } else {
+      // Subsequent batches: add to existing table
+      try {
+        table = await dbConnection.openTable(tableName);
+        await table.add(data);
+      } catch (e) {
+        console.error('Failed to add to table:', e.message);
+        throw e;
+      }
     }
 
     tableRef = table;

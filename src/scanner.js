@@ -23,7 +23,6 @@ const SUPPORTED_EXTENSIONS = new Set([
   '.groovy',
   '.gradle',
   '.xml', '.xsd',
-  '.json', '.jsonc',
   '.yaml', '.yml',
   '.toml',
   '.html', '.htm',
@@ -95,7 +94,7 @@ function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
   return files;
 }
 
-function chunkContent(content, chunkSize = 1000, overlapSize = 200) {
+function chunkContent(content, chunkSize = 1000, overlapSize = 100) {
   const lines = content.split('\n');
   const chunks = [];
 

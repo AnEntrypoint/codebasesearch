@@ -74,25 +74,26 @@ export async function run(args) {
     // Always reindex to ensure freshness
     console.log('Generating embeddings and indexing...');
 
-    // Generate embeddings in batches
+    // Generate embeddings in batches and upsert immediately to free memory
     const batchSize = 32;
-    const chunkTexts = chunks.map(c => c.content);
-    const allEmbeddings = [];
+    let processedCount = 0;
 
-    for (let i = 0; i < chunkTexts.length; i += batchSize) {
-      const batchTexts = chunkTexts.slice(i, i + batchSize);
+    for (let i = 0; i < chunks.length; i += batchSize) {
+      const batchChunks = chunks.slice(i, i + batchSize);
+      const batchTexts = batchChunks.map(c => c.content);
       const batchEmbeddings = await generateEmbeddings(batchTexts);
-      allEmbeddings.push(...batchEmbeddings);
+
+      // Create batch with embeddings
+      const batchWithEmbeddings = batchChunks.map((chunk, idx) => ({
+        ...chunk,
+        vector: batchEmbeddings[idx]
+      }));
+
+      // Upsert immediately to free memory
+      await upsertChunks(batchWithEmbeddings);
+      processedCount += batchWithEmbeddings.length;
     }
 
-    // Create chunks with embeddings
-    const chunksWithEmbeddings = chunks.map((chunk, idx) => ({
-      ...chunk,
-      vector: allEmbeddings[idx]
-    }));
-
-    // Upsert to store
-    await upsertChunks(chunksWithEmbeddings);
     console.log('Index created\n');
 
     // Execute search
