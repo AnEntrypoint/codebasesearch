@@ -1,8 +1,86 @@
 import { readFileSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Whitelist of code file extensions to include
+const CODE_EXTENSIONS = new Set([
+  // JavaScript/TypeScript
+  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts',
+  // Python
+  '.py', '.pyw', '.pyi',
+  // Java
+  '.java',
+  // C/C++
+  '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hh', '.hxx',
+  // C#
+  '.cs',
+  // Go
+  '.go',
+  // Rust
+  '.rs',
+  // Ruby
+  '.rb',
+  // PHP
+  '.php', '.phtml',
+  // Swift
+  '.swift',
+  // Kotlin
+  '.kt', '.kts',
+  // Scala
+  '.scala', '.sc',
+  // Perl
+  '.pl', '.pm',
+  // Shell/Bash
+  '.sh', '.bash', '.zsh', '.fish',
+  // PowerShell
+  '.ps1', '.psm1', '.psd1',
+  // Lua
+  '.lua',
+  // R
+  '.r', '.R',
+  // MATLAB/Octave
+  '.m', '.mat',
+  // Julia
+  '.jl',
+  // Dart
+  '.dart',
+  // Elixir
+  '.ex', '.exs',
+  // Erlang
+  '.erl', '.hrl',
+  // Haskell
+  '.hs', '.lhs',
+  // Clojure
+  '.clj', '.cljs', '.cljc',
+  // Lisp
+  '.lisp', '.lsp', '.scm', '.ss', '.rkt',
+  // Fortran
+  '.f', '.for', '.f90', '.f95', '.f03',
+  // Assembly
+  '.asm', '.s', '.S',
+  // Groovy
+  '.groovy', '.gvy',
+  // Visual Basic
+  '.vb', '.vbs',
+  // F#
+  '.fs', '.fsx',
+  // OCaml
+  '.ml', '.mli',
+  // Objective-C
+  '.m', '.mm',
+  // Arduino
+  '.ino',
+  // Vue SFC
+  '.vue',
+  // Svelte
+  '.svelte',
+  // CoffeeScript
+  '.coffee',
+  // Reason
+  '.re', '.rei'
+]);
 
 function loadDefaultIgnores() {
   const ignorePath = join(__dirname, '..', '.thornsignore');
@@ -197,22 +275,128 @@ export function loadIgnorePatterns(rootPath) {
   return merged;
 }
 
+// Directories to always ignore
+const IGNORED_DIRECTORIES = new Set([
+  // Dependencies - NEVER include
+  'node_modules', 'bower_components', 'jspm_packages', 'web_modules',
+  // Version control
+  '.git', '.svn', '.hg', '.bzr', '.vscode', '.idea', '.vs', '.atom', '.sublime-project',
+  // Build outputs - comprehensive list
+  'dist', 'dist-server', 'dist-ssr', 'dist-client', 'dist-server',
+  'build', 'built', 'Build', 'BUILD',
+  'out', 'output', 'Output', 'OUT', 'release', 'Release', 'RELEASE',
+  'target', 'Target', 'TARGET',
+  'bin', 'Bin', 'BIN', 'obj', 'Obj', 'OBJ',
+  'public', 'static', 'assets', 'www', 'wwwroot',
+  'site', '_site', '.site', '.docusaurus', '.gatsby', '.vuepress',
+  'storybook-static', '.nuxt', 'nuxt', '.next', 'next',
+  'out-tsc', 'tsc', '.tsc',
+  // Cache directories
+  '.cache', 'cache', '.parcel-cache', '.vite', 'vite', '.turbo', 'turbo',
+  '.npm', '.yarn', '.pnp', '.pnpm-store', '.rush', '.lerna', '.nx',
+  // Testing
+  'coverage', '.nyc_output', '.coverage', 'htmlcov', 'test-results',
+  'test', 'tests', 'Test', 'Tests', 'TEST', 'TESTS',
+  '__tests__', '__mocks__', '__snapshots__', '__fixtures__',
+  'cypress', 'playwright', 'e2e', 'integration', 'spec', 'specs',
+  '.tox', '.eggs', '.hypothesis', '.pyre', '.pytype',
+  // Python
+  '__pycache__', '.pytest_cache', '.mypy_cache', '.venv', 'venv', 'env',
+  'env.bak', 'venv.bak', '.Python', 'pip-wheel-metadata', '*.egg-info',
+  // Java/Gradle/Maven
+  '.gradle', '.mvn', 'gradle', 'mvn', '.settings', '.project', '.classpath',
+  // iOS/Android
+  'Pods', 'DerivedData', 'build', '.bundle', 'xcuserdata', '.xcodeproj', '.xcworkspace',
+  // Ruby
+  'vendor', '.bundle', '.ruby-version', 'pkg',
+  // Rust
+  'target', 'Cargo.lock',
+  // Go
+  'vendor', 'Godeps',
+  // PHP
+  'vendor', 'composer',
+  // Infrastructure
+  '.terraform', '.terragrunt-cache', '.pulumi', '.serverless', '.firebase',
+  '.aws', '.azure', '.gcloud', '.vercel', '.netlify', '.now',
+  // Docker
+  '.docker', 'docker', '.dockerignore',
+  // Temp files
+  'temp', 'tmp', '.tmp', '.temp', 'tmpfs', 'scratch', '.scratch',
+  // Documentation
+  'docs', 'doc', 'documentation', 'wiki', 'guides', 'examples', 'demo', 'demos',
+  'CHANGELOG', 'HISTORY', 'NEWS', 'LICENSE', 'LICENCE', 'COPYING', 'AUTHORS',
+  // IDE/Editor
+  '.vs', '.vscode', '.idea', '.eclipse', '.settings', '.classpath', '.project',
+  // Logs
+  'logs', 'log', '*.log',
+  // Data/Storage
+  'storage', 'data', 'database', 'db', 'fixtures', 'seeds',
+  'uploads', 'files', 'media', 'resources', 'assets', 'images', 'img',
+  // LLM/AI
+  '.llamaindex', '.chroma', '.vectorstore', '.embeddings',
+  '.langchain', '.autogen', '.semantic-kernel', '.openai-cache',
+  '.anthropic-cache', 'embeddings', 'vector-db', 'faiss-index',
+  'chromadb', 'pinecone-cache', 'weaviate-data',
+  // Package managers
+  '.yarn', '.pnpm', '.npm', '.bun',
+  // Compiled outputs
+  'typings', 'types', '@types', 'type-definitions',
+  // Misc
+  'public', 'static', 'site', '_site',
+  'cmake_build_debug', 'cmake_build_release', 'CMakeFiles', 'CMakeCache.txt',
+  'out-tsc', 'dist-server', 'server', 'client', 'browser', 'esm', 'cjs', 'umd', 'lib', 'es'
+]);
+
+export function isCodeFile(filePath) {
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const pathParts = normalizedPath.split('/');
+  const fileName = pathParts[pathParts.length - 1];
+  
+  // Get file extension
+  const lastDotIndex = fileName.lastIndexOf('.');
+  if (lastDotIndex === -1 || lastDotIndex === 0) {
+    return false; // No extension or hidden file without extension
+  }
+  
+  const ext = fileName.slice(lastDotIndex).toLowerCase();
+  return CODE_EXTENSIONS.has(ext);
+}
+
+export function shouldIgnoreDirectory(dirPath) {
+  const normalizedPath = dirPath.replace(/\\/g, '/');
+  const pathParts = normalizedPath.split('/');
+  
+  for (const part of pathParts) {
+    if (IGNORED_DIRECTORIES.has(part)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 export function shouldIgnore(filePath, ignorePatterns) {
   const normalizedPath = filePath.replace(/\\/g, '/');
   const pathParts = normalizedPath.split('/');
   const fileName = pathParts[pathParts.length - 1];
+  
+  // Check if any directory in path should be ignored
+  for (const part of pathParts.slice(0, -1)) {
+    if (IGNORED_DIRECTORIES.has(part)) {
+      return true;
+    }
+  }
+  
+  // Check if it's a code file using whitelist
+  if (!isCodeFile(filePath)) {
+    return true;
+  }
 
+  // Check against additional ignore patterns
   for (const pattern of ignorePatterns) {
     // Handle path patterns (contain /)
     if (pattern.includes('/')) {
       if (normalizedPath.includes(pattern)) {
-        return true;
-      }
-    }
-    // Handle extension patterns (*.ext)
-    else if (pattern.startsWith('*.')) {
-      const ext = pattern.slice(1);
-      if (fileName.endsWith(ext)) {
         return true;
       }
     }
