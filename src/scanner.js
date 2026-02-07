@@ -28,7 +28,8 @@ const SUPPORTED_EXTENSIONS = new Set([
   '.html', '.htm',
   '.css', '.scss', '.sass', '.less',
   '.vue', '.svelte',
-  '.md', '.markdown'
+  '.md', '.markdown',
+  '.txt'
 ]);
 
 function getFileExtension(filePath) {
