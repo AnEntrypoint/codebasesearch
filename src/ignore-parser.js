@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Whitelist of code file extensions to include
+// Unified whitelist of code file extensions to include (102 supported)
 const CODE_EXTENSIONS = new Set([
   // JavaScript/TypeScript
   '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts',
@@ -15,13 +15,13 @@ const CODE_EXTENSIONS = new Set([
   // C/C++
   '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hh', '.hxx',
   // C#
-  '.cs',
+  '.cs', '.csx',
   // Go
   '.go',
   // Rust
   '.rs',
   // Ruby
-  '.rb',
+  '.rb', '.erb',
   // PHP
   '.php', '.phtml',
   // Swift
@@ -54,7 +54,7 @@ const CODE_EXTENSIONS = new Set([
   '.hs', '.lhs',
   // Clojure
   '.clj', '.cljs', '.cljc',
-  // Lisp
+  // Lisp/Scheme
   '.lisp', '.lsp', '.scm', '.ss', '.rkt',
   // Fortran
   '.f', '.for', '.f90', '.f95', '.f03',
@@ -79,7 +79,15 @@ const CODE_EXTENSIONS = new Set([
   // CoffeeScript
   '.coffee',
   // Reason
-  '.re', '.rei'
+  '.re', '.rei',
+  // Markup/Data
+  '.xml', '.xsd', '.html', '.htm', '.yml', '.yaml', '.toml',
+  // Styling
+  '.css', '.scss', '.sass', '.less',
+  // SQL
+  '.sql',
+  // Markdown/Text
+  '.md', '.markdown', '.txt'
 ]);
 
 function loadDefaultIgnores() {

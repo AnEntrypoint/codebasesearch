@@ -24,7 +24,7 @@ claude mcp add -s user codebasesearch -- bunx codebasesearch
 - **Semantic search** across entire repositories using Jina embeddings (512-dim vectors)
 - **Embedded vector database** (LanceDB) - no external servers or setup required
 - **Auto-indexing** - automatically scans and indexes repository before each search
-- **Comprehensive ignore patterns** - respects .gitignore and ignores build artifacts, node_modules, etc. across all languages
+- **Comprehensive file filtering** - respects .gitignore, ignores build artifacts, node_modules, dependencies across all languages; includes 102 code/markup/styling file types
 - **Single-shot execution** - no persistent processes, no background daemons
 - **MCP protocol support** - integrates with Claude Code and other MCP-compatible tools
 - **Auto-gitignore** - automatically adds `.code-search/` to .gitignore on first run
@@ -71,9 +71,19 @@ search query="middleware validation" repository_path="/path/to/repo"
 7. **Returns** ranked results with line numbers and code snippets
 8. **Auto-adds** `.code-search/` to .gitignore
 
-## Supported Languages
+## Supported Languages (102 Extensions)
 
-JavaScript, TypeScript, Python, Go, Rust, Java, C/C++, C#, Ruby, PHP, Scala, Swift, Shell, SQL, R, Lua, Perl, Groovy, XML, JSON, YAML, TOML, HTML, CSS, SCSS, Vue, and more.
+**Programming**: JavaScript, TypeScript, Python, Go, Rust, Java, Kotlin, Scala, C/C++, C#, Ruby, PHP, Swift, Shell, PowerShell, Perl, Lua, R, Dart, Elixir, Erlang, Haskell, Clojure, Lisp, Fortran, Assembly, Groovy, Visual Basic, F#, OCaml, Objective-C, Arduino, CoffeeScript, Reason, Julia, MATLAB
+
+**Markup & Data**: XML, XSD, HTML, YAML, TOML
+
+**Styling**: CSS, SCSS, Sass, Less
+
+**Database**: SQL
+
+**Frontend**: Vue, Svelte
+
+**Text & Docs**: Markdown, Plain Text
 
 ## Storage
 

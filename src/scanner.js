@@ -1,36 +1,6 @@
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join, relative } from 'path';
-import { shouldIgnore } from './ignore-parser.js';
-
-const SUPPORTED_EXTENSIONS = new Set([
-  '.js', '.ts', '.tsx', '.jsx', '.mjs', '.cjs',
-  '.py', '.pyw', '.pyi',
-  '.go',
-  '.rs',
-  '.java', '.kt', '.scala',
-  '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hxx',
-  '.c', '.h',
-  '.rb', '.erb',
-  '.php',
-  '.cs', '.csx',
-  '.swift',
-  '.m', '.mm',
-  '.sh', '.bash', '.zsh',
-  '.sql',
-  '.r', '.R',
-  '.lua',
-  '.pl', '.pm',
-  '.groovy',
-  '.gradle',
-  '.xml', '.xsd',
-  '.yaml', '.yml',
-  '.toml',
-  '.html', '.htm',
-  '.css', '.scss', '.sass', '.less',
-  '.vue', '.svelte',
-  '.md', '.markdown',
-  '.txt'
-]);
+import { shouldIgnore, isCodeFile } from './ignore-parser.js';
 
 function getFileExtension(filePath) {
   const lastDot = filePath.lastIndexOf('.');
@@ -71,8 +41,7 @@ function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
       if (entry.isDirectory()) {
         files.push(...walkDirectory(fullPath, ignorePatterns, relPath));
       } else if (entry.isFile()) {
-        const ext = getFileExtension(entry.name);
-        if (SUPPORTED_EXTENSIONS.has(ext) && !isBinaryFile(entry.name)) {
+        if (isCodeFile(normalizedRelPath) && !isBinaryFile(entry.name)) {
           try {
             const stat = entry.isSymbolicLink ? null : statSync(fullPath);
             const maxSize = 5 * 1024 * 1024;
