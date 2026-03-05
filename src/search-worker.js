@@ -1,5 +1,5 @@
 import { parentPort } from 'worker_threads';
-import { resolve } from 'path';
+import { resolve, relative } from 'path';
 import { existsSync } from 'fs';
 import { loadIgnorePatterns } from './ignore-parser.js';
 import { scanRepository } from './scanner.js';
@@ -53,13 +53,17 @@ async function performSearch(repositoryPath, query) {
       query,
       repository: absolutePath,
       resultsCount: results.length,
-      results: results.slice(0, 10).map((result, idx) => ({
-        rank: idx + 1,
-        file: result.file_path,
-        lines: `${result.line_start}-${result.line_end}`,
-        score: (result.score * 100).toFixed(1),
-        snippet: result.content.split('\n').slice(0, 3).join('\n'),
-      })),
+      results: results.slice(0, 10).map((result, idx) => {
+        const absoluteFilePath = resolve(absolutePath, result.file_path);
+        return {
+          rank: idx + 1,
+          file: result.file_path,
+          relativePath: relative(repositoryPath, absoluteFilePath),
+          lines: `${result.line_start}-${result.line_end}`,
+          score: (result.score * 100).toFixed(1),
+          snippet: result.content.split('\n').slice(0, 3).join('\n'),
+        };
+      }),
     };
   } catch (error) {
     return { error: error.message, results: [] };

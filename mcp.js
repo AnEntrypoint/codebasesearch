@@ -140,7 +140,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         : `Found ${result.resultsCount} result${result.resultsCount !== 1 ? 's' : ''} for query: "${query}"\nRepository: ${result.repository}\n\n${result.results
             .map(
               (r) =>
-                `${r.rank}. ${r.file}:${r.lines} (score: ${r.score}%)\n${r.snippet
+                `${r.rank}. ${r.relativePath}:${r.lines} (score: ${r.score}%)\n${r.snippet
                   .split('\n')
                   .map((line) => `   ${line}`)
                   .join('\n')}`
