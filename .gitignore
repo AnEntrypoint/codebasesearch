@@ -25,3 +25,4 @@ Thumbs.db
 *.tmp
 .env.local
 .glootie-stop-verified
+.gm-stop-verified

@@ -136,11 +136,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     const text =
       result.resultsCount === 0
-        ? `No results found for query: "${query}"\nRepository: ${result.repository}`
-        : `Found ${result.resultsCount} result${result.resultsCount !== 1 ? 's' : ''} for query: "${query}"\nRepository: ${result.repository}\n\n${result.results
+        ? `No results found for query: "${query}"`
+        : `Found ${result.resultsCount} result${result.resultsCount !== 1 ? 's' : ''} for query: "${query}"\n\n${result.results
             .map(
               (r) =>
-                `${r.rank}. ${r.relativePath}:${r.lines} (score: ${r.score}%)\n${r.snippet
+                `${r.rank}. ${r.absolutePath}:${r.lines} (score: ${r.score}%)\n${r.snippet
                   .split('\n')
                   .map((line) => `   ${line}`)
                   .join('\n')}`

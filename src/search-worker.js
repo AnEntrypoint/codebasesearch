@@ -57,8 +57,7 @@ async function performSearch(repositoryPath, query) {
         const absoluteFilePath = resolve(absolutePath, result.file_path);
         return {
           rank: idx + 1,
-          file: result.file_path,
-          relativePath: relative(repositoryPath, absoluteFilePath),
+          absolutePath: absoluteFilePath,
           lines: `${result.line_start}-${result.line_end}`,
           score: (result.score * 100).toFixed(1),
           snippet: result.content.split('\n').slice(0, 3).join('\n'),
