@@ -134,17 +134,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    const repoPath = typeof repositoryPath === 'string' ? repositoryPath : null;
     const text =
       result.resultsCount === 0
         ? `No results found for query: "${query}"`
         : `Found ${result.resultsCount} result${result.resultsCount !== 1 ? 's' : ''} for query: "${query}"\n\n${result.results
-            .map(
-              (r) =>
-                `${r.rank}. ${r.absolutePath}:${r.lines} (score: ${r.score}%)\n${r.snippet
-                  .split('\n')
-                  .map((line) => `   ${line}`)
-                  .join('\n')}`
-            )
+            .map((r) => {
+              const pathPart = r.relativePath || r.absolutePath;
+              const lineCount = r.totalLines ? ` [${r.totalLines}L]` : '';
+              const ctx = r.enclosingContext ? ` (in: ${r.enclosingContext})` : '';
+              const header = `${r.rank}. ${pathPart}${lineCount}:${r.lines}${ctx} (score: ${r.score}%)`;
+              const body = r.snippet.split('\n').map((line) => `   ${line}`).join('\n');
+              return `${header}\n${body}`;
+            })
             .join('\n\n')}`;
 
     return {
