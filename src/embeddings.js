@@ -105,11 +105,16 @@ export async function generateEmbeddings(texts) {
     texts = [texts];
   }
 
-  // Generate embeddings for all texts
-  const embeddings = await model(texts, {
-    pooling: 'mean',
-    normalize: true
-  });
+  // Generate embeddings for all texts with timeout per batch
+  const embeddings = await Promise.race([
+    model(texts, {
+      pooling: 'mean',
+      normalize: true
+    }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Embedding generation timeout')), 60000)
+    )
+  ]);
 
   // Convert to regular arrays
   const result = [];

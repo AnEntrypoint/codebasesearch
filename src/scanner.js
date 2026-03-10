@@ -65,7 +65,7 @@ function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
   return files;
 }
 
-function chunkContent(content, chunkSize = 1000, overlapSize = 100) {
+function chunkContent(content, chunkSize = 300, overlapSize = 50) {
   const lines = content.split('\n');
   const chunks = [];
 
@@ -100,7 +100,7 @@ export function scanRepository(rootPath, ignorePatterns) {
       const mtime = file.mtime;
 
       // For small files, treat as single chunk
-      if (content.split('\n').length <= 1000) {
+      if (content.split('\n').length <= 300) {
         chunks.push({
           file_path: file.relativePath,
           chunk_index: 0,

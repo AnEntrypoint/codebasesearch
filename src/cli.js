@@ -77,27 +77,33 @@ export async function run(args) {
     // Generate embeddings in batches and upsert immediately to free memory
     const batchSize = 32;
     let processedCount = 0;
+    let embeddingsAvailable = true;
 
-    for (let i = 0; i < chunks.length; i += batchSize) {
-      const batchChunks = chunks.slice(i, i + batchSize);
-      const batchTexts = batchChunks.map(c => c.content);
-      const batchEmbeddings = await generateEmbeddings(batchTexts);
+    try {
+      for (let i = 0; i < chunks.length; i += batchSize) {
+        const batchChunks = chunks.slice(i, i + batchSize);
+        const batchTexts = batchChunks.map(c => c.content);
+        const batchEmbeddings = await generateEmbeddings(batchTexts);
 
-      // Create batch with embeddings
-      const batchWithEmbeddings = batchChunks.map((chunk, idx) => ({
-        ...chunk,
-        vector: batchEmbeddings[idx]
-      }));
+        // Create batch with embeddings
+        const batchWithEmbeddings = batchChunks.map((chunk, idx) => ({
+          ...chunk,
+          vector: batchEmbeddings[idx]
+        }));
 
-      // Upsert immediately to free memory
-      await upsertChunks(batchWithEmbeddings);
-      processedCount += batchWithEmbeddings.length;
+        // Upsert immediately to free memory
+        await upsertChunks(batchWithEmbeddings);
+        processedCount += batchWithEmbeddings.length;
+      }
+    } catch (embeddingError) {
+      console.warn(`Warning: Embedding generation failed (${embeddingError.message}). Using text-only search.\n`);
+      embeddingsAvailable = false;
     }
 
     console.log('Index created\n');
 
-    // Execute search
-    const results = await executeSearch(query);
+    // Execute search with chunks for hybrid search (text-only if embeddings failed)
+    const results = await executeSearch(query, 10, chunks);
 
     // Format and display results
     const output = formatResults(results);
