@@ -106,109 +106,17 @@ function loadDefaultIgnores() {
 
 function getHardcodedIgnores() {
   return new Set([
-    'node_modules', '.git', '.svn', '.hg', 'dist', 'build', 'out',
-    'target', 'vendor', '__pycache__', '.pytest_cache', '.mypy_cache',
-    '.next', '.nuxt', '.cache', '.parcel-cache', '.vite', '.turbo',
-    'coverage', '.nyc_output', '.firebase', '.terraform', '.aws',
-    '.azure', '.gcloud', '.vscode', '.idea', '.vs', 'bin', 'obj',
-    '.gradle', '.mvn', 'Pods', 'DerivedData', '.bundle',
-    '.yarn', '.pnp', 'pnpm-lock.yaml', '.pnpm-store',
-    '.tox', '.eggs', '*.egg-info', '.venv', 'venv', 'env',
-    '.tsc', '.eslintcache', '.stylelintcache', '.parcel-cache',
-    'temp', 'tmp', '.tmp', '.DS_Store', 'Thumbs.db',
-    '.swp', '.swo', '*.swp', '*.swo', '.tern-port',
-    'dist-server', 'out-tsc', '.cache', '.parcel-cache',
-    'typings', '.env', '.env.local', '.env.*.local',
-    // JSON files - PRIMARY PRIORITY for memory reduction
-    '*.json', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
-    'Gemfile.lock', 'poetry.lock', 'Pipfile.lock',
-    // Lock files
-    '*.lock',
-    // Build outputs
-    'public', 'static', 'site', '_site', '.docusaurus', '.gatsby',
-    // Cache/dependency directories
-    '.rush', '.lerna', '.nx',
-    // IDE/editor configs
-    '.cursor', '.replit', '.sublime-project', '.sublime-workspace',
-    '*.iml', '.project', '.classpath', '.settings', '*.sublime-*',
+    // Lock files / package manager artifacts
+    'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+    'Gemfile.lock', 'poetry.lock', 'Pipfile.lock', 'Cargo.lock',
+    'composer.lock', 'go.sum',
     // OS files
-    '.Spotlight-V100', '.Trashes', 'ehthumbs.db', '.fseventsd',
-    '.TemporaryItems', '.AppleDouble', '.LSOverride', 'desktop.ini',
-    // Large data files
-    '*.db', '*.sqlite', '*.sqlite3', '*.bak', '*.dump',
-    '*.backup', '*.data', '*.orig',
-    // Logs and temp
-    '*.log', 'logs', 'npm-debug.log', 'yarn-error.log',
-    // Test coverage and reports
-    'lcov.info', '.coverage', 'test-results',
-    // Database related
-    'storage', 'fixtures',
-    // LLM/Vector related
-    '.llamaindex', '.chroma', '.vectorstore', '.embeddings',
-    '.langchain', '.autogen', '.semantic-kernel', '.openai-cache',
-    '.anthropic-cache', 'embeddings', 'vector-db', 'faiss-index',
-    'chromadb', 'pinecone-cache', 'weaviate-data',
-    // Compiled output
+    '.DS_Store', 'Thumbs.db', 'desktop.ini',
+    // Editor swap files
+    '.tern-port',
+    // Compiled binary artifacts (files, not dirs)
     '*.min.js', '*.min.css', '*.bundle.js', '*.chunk.js', '*.map',
-    // Generated/build artifacts
-    '.assets', 'out-tsc', 'cmake_build_debug', 'cmake_build_release',
-    // Version managers
-    '.rbenv', '.nvm', '.nvmrc',
-    // Ruby specific
-    '*.gem', '*.rbc', '/pkg', '/spec/reports', '/spec/examples.txt',
-    '/test/tmp', '/test/version_tmp', 'lib/bundler/man', '.ruby-version',
-    // Go specific
-    'go.work',
-    // Rust specific
-    'Cargo.lock', '**/*.rs.bk', '*.pdb',
-    // Java specific
-    '*.class', '*.jar', '*.war', '*.ear', '*.nar', '*.nupkg', '*.snupkg',
-    // C# specific
-    '*.suo', '*.user', '*.userosscache', '*.sln.docstates',
-    'project.lock.json', 'project.fragment.lock.json', 'artifacts',
-    // C/C++ specific
-    '*.o', '*.a', '*.so', '*.exe', '*.obj', '*.dll', '*.dylib',
-    'CMakeFiles', 'CMakeCache.txt', '*.cmake',
-    // Swift/Xcode specific
-    '*.xcodeproj', '*.xcworkspace', '*.moved-aside', '*.pbxuser',
-    '*.mode1v3', '*.mode2v3', '*.perspectivev3',
-    // Scala/SBT specific
-    'lib_managed', 'src_managed', 'project/boot', 'project/plugins/project',
-    '.history', '.lib',
-    // PHP specific
-    'composer.lock', '*.phar',
-    // Docker
-    '.dockerignore', 'docker-compose.override.yml', '.docker',
-    // Documentation build
-    'docs/_build', '.vuepress',
-    // Testing frameworks
-    'jest.config', 'vitest.config', 'pytest.ini', 'tox.ini',
-    '__tests__', '__mocks__', 'spec', 'cypress', 'playwright',
-    // Monorepo workspace patterns (implicit through directory coverage)
-    '.turbo', '.nx',
-    // Python package patterns
-    '*.py[cod]', '*$py.class', '.Python', 'pip-log.txt',
-    'pip-delete-this-directory.txt', '.hypothesis', '.pyre', '.pytype',
-    '*.whl',
-    // Config/metadata that are typically low-value
-    '*.config.js', '*.config.ts', 'webpack.config.js', 'rollup.config.js',
-    'vite.config.js', 'tsconfig.json', 'jsconfig.json', 'babel.config',
-    '.babelrc', '.eslintrc', '.prettierrc', '.stylelintrc', '.editorconfig',
-    '*.local', '*.development', '*.production',
-    // Node specific
-    '.npm', '.node_repl_history', '*.tsbuildinfo', 'yarn-error.log',
-    // Documentation/reference files that don't help with search
-    '*.md', '*.txt', '*.rst', '*.adoc', 'docs', 'documentation', 'wiki',
-    'CHANGELOG', 'HISTORY', 'NEWS', 'UPGRADING', 'FAQ', 'CONTRIBUTING',
-    'SECURITY', 'LICENSE', 'LICENCE', 'COPYRIGHT', 'NOTICE', 'AUTHORS',
-    'THIRDPARTY',
-    // Test and coverage files
-    '*.test', '*.spec', 'test', 'tests', 'htmlcov',
-    // Profiling
-    '*.prof', '*.cpuprofile', '*.heapprofile',
-    // Misc
-    '.tern-port', 'firebase-debug.log', 'firestore-debug.log',
-    'ui-debug.log', '.firebaserc', '.stackdump'
+    '*.tsbuildinfo',
   ]);
 }
 
@@ -283,76 +191,54 @@ export function loadIgnorePatterns(rootPath) {
   return merged;
 }
 
-// Directories to always ignore
+// Directories to always ignore - only clear non-source directories
 const IGNORED_DIRECTORIES = new Set([
-  // Dependencies - NEVER include
+  // Dependencies
   'node_modules', 'bower_components', 'jspm_packages', 'web_modules',
   // Version control
-  '.git', '.svn', '.hg', '.bzr', '.vscode', '.idea', '.vs', '.atom', '.sublime-project',
-  // Build outputs - comprehensive list
-  'dist', 'dist-server', 'dist-ssr', 'dist-client', 'dist-server',
-  'build', 'built', 'Build', 'BUILD',
-  'out', 'output', 'Output', 'OUT', 'release', 'Release', 'RELEASE',
-  'target', 'Target', 'TARGET',
-  'bin', 'Bin', 'BIN', 'obj', 'Obj', 'OBJ',
-  'public', 'static', 'assets', 'www', 'wwwroot',
-  'site', '_site', '.site', '.docusaurus', '.gatsby', '.vuepress',
-  'storybook-static', '.nuxt', 'nuxt', '.next', 'next',
-  'out-tsc', 'tsc', '.tsc',
+  '.git', '.svn', '.hg', '.bzr',
+  // IDE
+  '.vscode', '.idea', '.vs', '.atom',
+  // Build outputs (unambiguous names only)
+  'dist', 'dist-server', 'dist-ssr', 'dist-client',
+  'build', 'built',
+  'out', 'out-tsc',
+  'target',
+  'storybook-static', '.docusaurus', '.gatsby', '.vuepress',
+  '.nuxt', '.next',
+  '.tsc',
   // Cache directories
-  '.cache', 'cache', '.parcel-cache', '.vite', 'vite', '.turbo', 'turbo',
+  '.cache', '.parcel-cache', '.vite', '.turbo',
   '.npm', '.yarn', '.pnp', '.pnpm-store', '.rush', '.lerna', '.nx',
   // Testing
   'coverage', '.nyc_output', '.coverage', 'htmlcov', 'test-results',
-  'test', 'tests', 'Test', 'Tests', 'TEST', 'TESTS',
   '__tests__', '__mocks__', '__snapshots__', '__fixtures__',
-  'cypress', 'playwright', 'e2e', 'integration', 'spec', 'specs',
+  'cypress', 'playwright',
   '.tox', '.eggs', '.hypothesis', '.pyre', '.pytype',
   // Python
-  '__pycache__', '.pytest_cache', '.mypy_cache', '.venv', 'venv', 'env',
-  'env.bak', 'venv.bak', '.Python', 'pip-wheel-metadata', '*.egg-info',
+  '__pycache__', '.pytest_cache', '.mypy_cache', '.venv', 'venv',
   // Java/Gradle/Maven
-  '.gradle', '.mvn', 'gradle', 'mvn', '.settings', '.project', '.classpath',
+  '.gradle', '.mvn',
   // iOS/Android
-  'Pods', 'DerivedData', 'build', '.bundle', 'xcuserdata', '.xcodeproj', '.xcworkspace',
+  'Pods', 'DerivedData', '.bundle', 'xcuserdata',
   // Ruby
-  'vendor', '.bundle', '.ruby-version', 'pkg',
-  // Rust
-  'target', 'Cargo.lock',
-  // Go
-  'vendor', 'Godeps',
-  // PHP
-  'vendor', 'composer',
+  '.bundle', 'pkg',
   // Infrastructure
   '.terraform', '.terragrunt-cache', '.pulumi', '.serverless', '.firebase',
-  '.aws', '.azure', '.gcloud', '.vercel', '.netlify', '.now',
-  // Docker
-  '.docker', 'docker', '.dockerignore',
+  '.aws', '.azure', '.gcloud', '.vercel', '.netlify',
   // Temp files
-  'temp', 'tmp', '.tmp', '.temp', 'tmpfs', 'scratch', '.scratch',
-  // Documentation
-  'docs', 'doc', 'documentation', 'wiki', 'guides', 'examples', 'demo', 'demos',
-  'CHANGELOG', 'HISTORY', 'NEWS', 'LICENSE', 'LICENCE', 'COPYING', 'AUTHORS',
-  // IDE/Editor
-  '.vs', '.vscode', '.idea', '.eclipse', '.settings', '.classpath', '.project',
-  // Logs
-  'logs', 'log', '*.log',
-  // Data/Storage
-  'storage', 'data', 'database', 'db', 'fixtures', 'seeds',
-  'uploads', 'files', 'media', 'resources', 'assets', 'images', 'img',
-  // LLM/AI
+  'temp', 'tmp', '.tmp', '.temp',
+  // LLM/AI artifacts
   '.llamaindex', '.chroma', '.vectorstore', '.embeddings',
   '.langchain', '.autogen', '.semantic-kernel', '.openai-cache',
   '.anthropic-cache', 'embeddings', 'vector-db', 'faiss-index',
   'chromadb', 'pinecone-cache', 'weaviate-data',
-  // Package managers
-  '.yarn', '.pnpm', '.npm', '.bun',
-  // Compiled outputs
-  'typings', 'types', '@types', 'type-definitions',
-  // Misc
-  'public', 'static', 'site', '_site',
-  'cmake_build_debug', 'cmake_build_release', 'CMakeFiles', 'CMakeCache.txt',
-  'out-tsc', 'dist-server', 'server', 'client', 'browser', 'esm', 'cjs', 'umd', 'lib', 'es'
+  // Package manager caches
+  '.pnpm', '.bun',
+  // Static/built asset directories
+  'assets', 'static', 'public', 'wwwroot', 'www',
+  // Misc generated
+  'cmake_build_debug', 'cmake_build_release', 'CMakeFiles',
 ]);
 
 export function isCodeFile(filePath) {
@@ -373,28 +259,34 @@ export function isCodeFile(filePath) {
 export function shouldIgnoreDirectory(dirPath) {
   const normalizedPath = dirPath.replace(/\\/g, '/');
   const pathParts = normalizedPath.split('/');
-  
   for (const part of pathParts) {
     if (IGNORED_DIRECTORIES.has(part)) {
       return true;
     }
   }
-  
   return false;
 }
 
-export function shouldIgnore(filePath, ignorePatterns) {
+export function shouldIgnore(filePath, ignorePatterns, isDirectory = false) {
   const normalizedPath = filePath.replace(/\\/g, '/');
   const pathParts = normalizedPath.split('/');
   const fileName = pathParts[pathParts.length - 1];
-  
-  // Check if any directory in path should be ignored
+
+  if (isDirectory) {
+    if (IGNORED_DIRECTORIES.has(fileName)) return true;
+    for (const pattern of ignorePatterns) {
+      if (!pattern.includes('/') && fileName === pattern) return true;
+    }
+    return false;
+  }
+
+  // For files: check all ancestor directories
   for (const part of pathParts.slice(0, -1)) {
     if (IGNORED_DIRECTORIES.has(part)) {
       return true;
     }
   }
-  
+
   // Check if it's a code file using whitelist
   if (!isCodeFile(filePath)) {
     return true;
@@ -402,22 +294,13 @@ export function shouldIgnore(filePath, ignorePatterns) {
 
   // Check against additional ignore patterns
   for (const pattern of ignorePatterns) {
-    // Handle path patterns (contain /)
     if (pattern.includes('/')) {
-      if (normalizedPath.includes(pattern)) {
-        return true;
-      }
-    }
-    // Handle exact file name patterns
-    else if (fileName === pattern) {
+      if (normalizedPath.includes(pattern)) return true;
+    } else if (fileName === pattern) {
       return true;
-    }
-    // Handle directory name patterns (match any path part)
-    else {
+    } else {
       for (const part of pathParts) {
-        if (part === pattern || part.startsWith(pattern + '/')) {
-          return true;
-        }
+        if (part === pattern) return true;
       }
     }
   }

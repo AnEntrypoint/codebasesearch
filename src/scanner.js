@@ -1,6 +1,6 @@
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join, relative } from 'path';
-import { shouldIgnore, isCodeFile } from './ignore-parser.js';
+import { shouldIgnore, shouldIgnoreDirectory, isCodeFile } from './ignore-parser.js';
 
 function getFileExtension(filePath) {
   const lastDot = filePath.lastIndexOf('.');
@@ -33,14 +33,15 @@ function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
       // Normalize to forward slashes for consistent ignore pattern matching
       const normalizedRelPath = relPath.replace(/\\/g, '/');
 
-      // Check if should ignore
-      if (shouldIgnore(normalizedRelPath, ignorePatterns)) {
-        continue;
-      }
-
       if (entry.isDirectory()) {
+        if (shouldIgnoreDirectory(normalizedRelPath) || shouldIgnore(normalizedRelPath, ignorePatterns, true)) {
+          continue;
+        }
         files.push(...walkDirectory(fullPath, ignorePatterns, relPath));
       } else if (entry.isFile()) {
+        if (shouldIgnore(normalizedRelPath, ignorePatterns, false)) {
+          continue;
+        }
         if (isCodeFile(normalizedRelPath) && !isBinaryFile(entry.name)) {
           try {
             const stat = entry.isSymbolicLink ? null : statSync(fullPath);
