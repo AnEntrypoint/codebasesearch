@@ -65,7 +65,7 @@ function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
   return files;
 }
 
-function chunkContent(content, chunkSize = 300, overlapSize = 50) {
+function chunkContent(content, chunkSize = 60, overlapSize = 15) {
   const lines = content.split('\n');
   const chunks = [];
 
@@ -81,7 +81,6 @@ function chunkContent(content, chunkSize = 300, overlapSize = 50) {
       });
     }
 
-    // Stop if we've reached the end
     if (endIdx === lines.length) {
       break;
     }
@@ -100,7 +99,7 @@ export function scanRepository(rootPath, ignorePatterns) {
       const mtime = file.mtime;
 
       // For small files, treat as single chunk
-      if (content.split('\n').length <= 300) {
+      if (content.split('\n').length <= 60) {
         chunks.push({
           file_path: file.relativePath,
           chunk_index: 0,
