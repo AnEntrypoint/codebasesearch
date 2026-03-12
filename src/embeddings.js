@@ -13,6 +13,7 @@ try {
 
 let modelCache = null;
 let cacheCleared = false;
+let modelLoadTime = 0;
 
 function clearModelCache() {
   const cacheDirs = [
@@ -37,6 +38,7 @@ async function getModel(retryOnError = true) {
     return modelCache;
   }
 
+  const modelStart = performance.now();
   console.error('Loading embeddings model (this may take a moment on first run)...');
 
   const modelLoadPromise = pipeline(
@@ -50,6 +52,7 @@ async function getModel(retryOnError = true) {
 
   try {
     modelCache = await Promise.race([modelLoadPromise, timeoutPromise]);
+    modelLoadTime = performance.now() - modelStart;
   } catch (e) {
     if (retryOnError && !cacheCleared && (e.message.includes('Protobuf') || e.message.includes('parsing'))) {
       console.error('Detected corrupted cache, clearing and retrying...');
@@ -65,37 +68,8 @@ async function getModel(retryOnError = true) {
   return modelCache;
 }
 
-async function meanPooling(modelOutput, attentionMask) {
-  // Get token embeddings from model output
-  const tokenEmbeddings = modelOutput.data;
-  const embeddingDim = modelOutput.dims[modelOutput.dims.length - 1];
-  const batchSize = modelOutput.dims[0];
-  const seqLength = modelOutput.dims[1];
-
-  const pooled = [];
-
-  for (let b = 0; b < batchSize; b++) {
-    let sum = new Array(embeddingDim).fill(0);
-    let count = 0;
-
-    for (let s = 0; s < seqLength; s++) {
-      const tokenIdx = b * seqLength + s;
-      const maskValue = attentionMask[tokenIdx] || 1;
-
-      if (maskValue > 0) {
-        const tokenStart = tokenIdx * embeddingDim;
-        for (let d = 0; d < embeddingDim; d++) {
-          sum[d] += tokenEmbeddings[tokenStart + d] * maskValue;
-        }
-        count += maskValue;
-      }
-    }
-
-    const normalized = sum.map(v => v / Math.max(count, 1e-9));
-    pooled.push(normalized);
-  }
-
-  return pooled;
+export function getModelLoadTime() {
+  return modelLoadTime;
 }
 
 export async function generateEmbeddings(texts) {

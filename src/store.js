@@ -5,6 +5,7 @@ import { mkdirSync, existsSync } from 'fs';
 let dbConnection = null;
 let tableRef = null;
 let isFirstBatch = true;
+let vectorSearchCache = new Map();
 
 export async function initStore(dbPath) {
   // Ensure directory exists
@@ -121,12 +122,19 @@ export async function searchSimilar(queryEmbedding, limit = 10) {
     // Ensure vector is a proper array/tensor
     const query = Array.isArray(queryEmbedding) ? queryEmbedding : Array.from(queryEmbedding);
 
+    // Check cache using 20-dimension hash for near-zero collision rate
+    const cacheKey = query.slice(0, 20).join(',');
+    const cached = vectorSearchCache.get(cacheKey);
+    if (cached) {
+      return cached.slice(0, limit);
+    }
+
     const results = await tableRef
       .search(query)
       .limit(limit)
       .execute();
 
-    return results.map(result => {
+    const formattedResults = results.map(result => {
       const distance = result._distance !== undefined ? result._distance : (result.distance || 0);
       const score = distance !== null && distance !== undefined ? 1 / (1 + distance) : 0;
       return {
@@ -139,6 +147,15 @@ export async function searchSimilar(queryEmbedding, limit = 10) {
         score: score
       };
     });
+
+    // Cache results (keep max 100 cached searches)
+    if (vectorSearchCache.size > 100) {
+      const firstKey = vectorSearchCache.keys().next().value;
+      vectorSearchCache.delete(firstKey);
+    }
+    vectorSearchCache.set(cacheKey, formattedResults);
+
+    return formattedResults;
   } catch (e) {
     console.error('Search failed:', e.message);
     return [];

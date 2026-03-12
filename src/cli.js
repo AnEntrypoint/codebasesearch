@@ -75,7 +75,11 @@ export async function run(args) {
     console.log('Generating embeddings and indexing...');
 
     // Generate embeddings in batches and upsert immediately to free memory
-    const batchSize = 32;
+    // Optimize batch size based on chunk count (larger batches are more efficient)
+    let batchSize = 32;
+    if (chunks.length > 500) batchSize = 64;
+    if (chunks.length > 1000) batchSize = 96;
+
     let processedCount = 0;
     let embeddingsAvailable = true;
 

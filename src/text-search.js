@@ -52,12 +52,14 @@ export function searchText(query, chunks, indexData) {
     const meta = chunkMetadata[idx];
     let score = 0;
 
-    queryTokens.forEach(token => {
-      if (index.has(token) && index.get(token).has(idx)) {
-        const freq = meta.frequency.get(token) || 1;
-        const lengthBoost = token.length > 4 ? 1.5 : 1;
-        score += lengthBoost * Math.min(freq, 5);
-      }
+    // Exact phrase match - highest priority (saves embedding cost)
+    if (chunk.content.toLowerCase().includes(query.toLowerCase())) {
+      score += 30;
+    }
+
+    // Symbol match in content - function/class named after query terms
+    querySymbols.forEach(symbol => {
+      if (meta.symbols.includes(symbol)) score += 10;
     });
 
     // Filename token match - strong signal that this file is about the query topic
@@ -66,18 +68,17 @@ export function searchText(query, chunks, indexData) {
       if (meta.fileNameTokens.includes(token)) fileNameMatches++;
     });
     if (fileNameMatches > 0) {
-      score += fileNameMatches * 8;
+      score += fileNameMatches * 10;
     }
 
-    // Symbol match in content - function/class named after query terms
-    querySymbols.forEach(symbol => {
-      if (meta.symbols.includes(symbol)) score += 5;
+    // Token frequency scoring
+    queryTokens.forEach(token => {
+      if (index.has(token) && index.get(token).has(idx)) {
+        const freq = meta.frequency.get(token) || 1;
+        const lengthBoost = token.length > 4 ? 1.5 : 1;
+        score += lengthBoost * Math.min(freq, 5);
+      }
     });
-
-    // Exact phrase match
-    if (chunk.content.toLowerCase().includes(query.toLowerCase())) {
-      score += 15;
-    }
 
     // Code file boost
     if (meta.isCode) score *= 1.2;
@@ -85,13 +86,14 @@ export function searchText(query, chunks, indexData) {
     if (score > 0) chunkScores.set(idx, score);
   }
 
-  const results = Array.from(chunkScores.entries())
-    .map(([idx, score]) => ({
-      ...chunks[idx],
-      score: Math.min(score / 100, 1),
-      _rawScore: score,
-    }))
-    .sort((a, b) => b._rawScore - a._rawScore);
+  const entries = Array.from(chunkScores.entries()).sort((a, b) => b[1] - a[1]);
+  const maxScore = entries.length > 0 ? entries[0][1] : 1;
+
+  const results = entries.map(([idx, score]) => ({
+    ...chunks[idx],
+    score: score / maxScore,
+    _rawScore: score,
+  }));
 
   return results;
 }
