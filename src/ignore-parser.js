@@ -197,6 +197,8 @@ const IGNORED_DIRECTORIES = new Set([
   'node_modules', 'bower_components', 'jspm_packages', 'web_modules',
   // Version control
   '.git', '.svn', '.hg', '.bzr',
+  // Tool config (AI assistants, editors)
+  '.claude', '.cursor', '.aider',
   // IDE
   '.vscode', '.idea', '.vs', '.atom',
   // Build outputs (unambiguous names only)

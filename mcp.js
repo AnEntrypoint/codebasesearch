@@ -22,19 +22,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { cwd } from 'process';
 import { join } from 'path';
-import { existsSync, readFileSync, appendFileSync, writeFileSync, readdirSync } from 'fs';
-import { homedir } from 'os';
+import { existsSync, readFileSync, appendFileSync, writeFileSync } from 'fs';
 import { supervisor } from './src/supervisor.js';
-
-const WORKSPACE_PATH = join(homedir(), 'workspace');
-
-function getWorkspaceFolders() {
-  try {
-    return readdirSync(WORKSPACE_PATH, { withFileTypes: true })
-      .filter(e => e.isDirectory() && !e.name.startsWith('.'))
-      .map(e => join(WORKSPACE_PATH, e.name));
-  } catch { return []; }
-}
 
 function ensureIgnoreEntry(rootPath) {
   const gitignorePath = join(rootPath, '.gitignore');
@@ -49,10 +38,10 @@ function ensureIgnoreEntry(rootPath) {
   } catch (e) {}
 }
 
-function formatResults(result, query, scope) {
-  if (result.resultsCount === 0) return `No results found${scope ? ` across ${scope}` : ''} for: "${query}"`;
+function formatResults(result, query) {
+  if (result.resultsCount === 0) return `No results found for: "${query}"`;
   const plural = result.resultsCount !== 1 ? 's' : '';
-  const header = `Found ${result.resultsCount} result${plural}${scope ? ` across ${scope}` : ''} for: "${query}"\n\n`;
+  const header = `Found ${result.resultsCount} result${plural} for: "${query}"\n\n`;
   const body = result.results.map((r) => {
     const pathPart = r.relativePath || r.absolutePath;
     const lineCount = r.totalLines ? ` [${r.totalLines}L]` : '';
@@ -88,18 +77,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['query'],
       },
     },
-    {
-      name: 'search_workspace',
-      description: 'Search across ALL repositories in ~/workspace simultaneously. Returns ranked results with repo name prefix.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'Natural language search query' },
-          limit: { type: 'number', description: 'Max results to return (default: 10)' },
-        },
-        required: ['query'],
-      },
-    },
   ],
 }));
 
@@ -107,26 +84,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   const query = args?.query;
 
-  if (!['search', 'search_workspace'].includes(name)) return errResponse(`Unknown tool: ${name}`);
+  if (name !== 'search') return errResponse(`Unknown tool: ${name}`);
   if (!query || typeof query !== 'string') return errResponse('Error: query is required and must be a string');
 
   try {
-    if (name === 'search_workspace') {
-      const result = await supervisor.sendRequest({
-        type: 'search-all',
-        query,
-        workspacePaths: getWorkspaceFolders(),
-        limit: args?.limit || 10,
-      });
-      if (result.error) return errResponse(`Error: ${result.error}`);
-      return okResponse(formatResults(result, query, 'workspace'));
-    }
-
     const repositoryPath = args?.repository_path || cwd();
     ensureIgnoreEntry(repositoryPath);
     const result = await supervisor.sendRequest({ type: 'search', query, repositoryPath });
     if (result.error) return errResponse(`Error: ${result.error}`);
-    return okResponse(formatResults(result, query, null));
+    return okResponse(formatResults(result, query));
   } catch (error) {
     return errResponse(`Error: ${error.message}`);
   }
@@ -135,13 +101,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 export async function startMcpServer() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-
-  const workspacePaths = getWorkspaceFolders();
-  if (workspacePaths.length > 0) {
-    supervisor.sendRequest({ type: 'index-all', workspacePaths })
-      .then(r => console.error(`[MCP] Pre-indexed workspace: ${r.message || JSON.stringify(r)}`))
-      .catch(e => console.error(`[MCP] Pre-index warning: ${e.message}`));
-  }
 }
 
 const isMain = process.argv[1] && (

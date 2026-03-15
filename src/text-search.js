@@ -1,35 +1,72 @@
 export function buildTextIndex(chunks) {
   const index = new Map();
-  const chunkMetadata = [];
+  const chunkMetadata = new Array(chunks.length);
 
-  chunks.forEach((chunk, idx) => {
-    const tokens = tokenize(chunk.content);
-    const fileNameTokens = tokenize(chunk.file_path);
-    const symbols = extractSymbols(chunk.content);
-    const frequency = new Map();
-
-    tokens.forEach(token => {
-      frequency.set(token, (frequency.get(token) || 0) + 1);
-      if (!index.has(token)) {
-        index.set(token, new Set());
-      }
-      index.get(token).add(idx);
-    });
+  for (let idx = 0; idx < chunks.length; idx++) {
+    const chunk = chunks[idx];
+    const frequency = tokenizeToFrequency(chunk.content, index, idx);
+    const fileNameTokens = new Set(tokenize(chunk.file_path));
+    const symbols = new Set(extractSymbols(chunk.content));
 
     chunkMetadata[idx] = {
-      tokens,
       fileNameTokens,
       symbols,
       frequency,
       isCode: isCodeFile(chunk.file_path),
+      contentLower: chunk.content.toLowerCase(),
     };
-  });
+  }
 
-  return { index, chunkMetadata };
+  // Precompute IDF for each token: log((N+1)/(df+1))
+  const N = chunks.length;
+  const idf = new Map();
+  for (const [token, docSet] of index) {
+    idf.set(token, Math.log((N + 1) / (docSet.size + 1)) + 1);
+  }
+
+  return { index, chunkMetadata, idf };
+}
+
+function tokenizeToFrequency(text, index, chunkIdx) {
+  const frequency = new Map();
+
+  for (const word of text.split(/\s+/)) {
+    if (word.length === 0) continue;
+
+    const hasUpperCase = word !== word.toLowerCase();
+    if (hasUpperCase) {
+      const camelTokens = word.match(/[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|\d|\W|$)|[0-9]+/g);
+      if (camelTokens) {
+        for (const t of camelTokens) {
+          if (t.length > 1) addToken(t.toLowerCase(), frequency, index, chunkIdx);
+        }
+      }
+    }
+
+    const cleaned = word.replace(/[^\w]/g, '').toLowerCase();
+    if (cleaned.length > 1) {
+      addToken(cleaned, frequency, index, chunkIdx);
+      if (word.includes('-') || word.includes('_') || word.includes('.')) {
+        for (const part of word.split(/[-_.]/)) {
+          const partCleaned = part.replace(/[^\w]/g, '').toLowerCase();
+          if (partCleaned.length > 1 && partCleaned !== cleaned) addToken(partCleaned, frequency, index, chunkIdx);
+        }
+      }
+    }
+  }
+
+  return frequency;
+}
+
+function addToken(token, frequency, index, chunkIdx) {
+  frequency.set(token, (frequency.get(token) || 0) + 1);
+  let docSet = index.get(token);
+  if (!docSet) { docSet = new Set(); index.set(token, docSet); }
+  docSet.add(chunkIdx);
 }
 
 export function searchText(query, chunks, indexData) {
-  const { index, chunkMetadata } = indexData;
+  const { index, chunkMetadata, idf } = indexData;
   const queryTokens = tokenize(query);
   const querySymbols = extractSymbols(query);
   const chunkScores = new Map();
@@ -47,36 +84,53 @@ export function searchText(query, chunks, indexData) {
     }
   });
 
-  for (const idx of candidates) {
+  const queryLower = query.toLowerCase();
+
+  let scoringCandidates = candidates;
+  if (candidates.size > 500) {
+    const ranked = Array.from(candidates).sort((a, b) => {
+      let aSum = 0, bSum = 0;
+      for (const token of queryTokens) {
+        if (index.has(token)) {
+          if (index.get(token).has(a)) aSum += idf.get(token) || 1;
+          if (index.get(token).has(b)) bSum += idf.get(token) || 1;
+        }
+      }
+      return bSum - aSum;
+    });
+    scoringCandidates = new Set(ranked.slice(0, 500));
+  }
+
+  for (const idx of scoringCandidates) {
     const chunk = chunks[idx];
     const meta = chunkMetadata[idx];
     let score = 0;
 
-    // Exact phrase match - highest priority (saves embedding cost)
-    if (chunk.content.toLowerCase().includes(query.toLowerCase())) {
+    if (queryTokens.length > 1 && meta.contentLower.includes(queryLower)) {
       score += 30;
     }
 
     // Symbol match in content - function/class named after query terms
     querySymbols.forEach(symbol => {
-      if (meta.symbols.includes(symbol)) score += 10;
+      if (meta.symbols.has(symbol)) score += 10;
     });
 
     // Filename token match - strong signal that this file is about the query topic
     let fileNameMatches = 0;
     queryTokens.forEach(token => {
-      if (meta.fileNameTokens.includes(token)) fileNameMatches++;
+      if (meta.fileNameTokens.has(token)) fileNameMatches++;
     });
     if (fileNameMatches > 0) {
       score += fileNameMatches * 10;
     }
 
-    // Token frequency scoring
+    // TF-IDF scoring: reward rare tokens that appear in this chunk
     queryTokens.forEach(token => {
       if (index.has(token) && index.get(token).has(idx)) {
-        const freq = meta.frequency.get(token) || 1;
+        const tf = Math.min(meta.frequency.get(token) || 1, 5);
+        const tokenIdf = idf ? (idf.get(token) || 1) : 1;
         const lengthBoost = token.length > 4 ? 1.5 : 1;
-        score += lengthBoost * Math.min(freq, 5);
+        score += lengthBoost * tf * tokenIdf;
       }
     });
 

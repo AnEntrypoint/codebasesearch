@@ -1,6 +1,6 @@
 import { parentPort } from 'worker_threads';
 import { resolve, relative } from 'path';
-import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
+import { existsSync, readFileSync, statSync } from 'fs';
 import { loadIgnorePatterns } from './ignore-parser.js';
 import { scanRepository } from './scanner.js';
 import { buildTextIndex, searchText } from './text-search.js';
@@ -21,26 +21,22 @@ function findEnclosingContext(content, lineStart) {
 }
 
 function getFileTotalLines(absoluteFilePath) {
+  if (fileLineCountCache.has(absoluteFilePath)) {
+    return fileLineCountCache.get(absoluteFilePath);
+  }
   try {
     const content = readFileSync(absoluteFilePath, 'utf8');
-    return content.split('\n').length;
+    const count = content.split('\n').length;
+    fileLineCountCache.set(absoluteFilePath, count);
+    return count;
   } catch {
     return null;
   }
 }
 
 let indexCache = new Map();
-
-function getWorkspaceFolders(workspacePath) {
-  try {
-    const entries = readdirSync(workspacePath, { withFileTypes: true });
-    return entries
-      .filter(e => e.isDirectory() && !e.name.startsWith('.'))
-      .map(e => resolve(workspacePath, e.name));
-  } catch {
-    return [];
-  }
-}
+// Cache file line counts to avoid repeated disk reads on every search
+const fileLineCountCache = new Map();
 
 async function initializeIndex(repositoryPath) {
   const absolutePath = resolve(repositoryPath);
@@ -87,7 +83,17 @@ async function performSearch(repositoryPath, query) {
       return { error: indexData.error, results: [] };
     }
 
-    const results = searchText(query, indexData.chunks, indexData.indexData);
+    const rawResults = searchText(query, indexData.chunks, indexData.indexData);
+
+    // Deduplicate: keep best-scoring chunk per file, then take top results
+    const bestPerFile = new Map();
+    for (const r of rawResults) {
+      const existing = bestPerFile.get(r.file_path);
+      if (!existing || r.score > existing.score) {
+        bestPerFile.set(r.file_path, r);
+      }
+    }
+    const results = Array.from(bestPerFile.values()).sort((a, b) => b.score - a.score);
 
     return {
       query,
@@ -115,78 +121,11 @@ async function performSearch(repositoryPath, query) {
   }
 }
 
-async function performSearchAll(workspacePaths, query, limit = 10) {
-  const allResults = [];
-
-  for (const repoPath of workspacePaths) {
-    const absolutePath = resolve(repoPath);
-    if (!existsSync(absolutePath)) continue;
-
-    const indexData = await initializeIndex(absolutePath);
-    if (indexData.error || !indexData.chunks) continue;
-
-    const results = searchText(query, indexData.chunks, indexData.indexData);
-    const repoName = absolutePath.split('/').pop();
-
-    const seenFiles = new Set();
-    for (const r of results) {
-      if (!seenFiles.has(r.file_path)) {
-        seenFiles.add(r.file_path);
-        allResults.push({ ...r, repoName, repoPath: absolutePath });
-      }
-      if (seenFiles.size >= limit) break;
-    }
-  }
-
-  allResults.sort((a, b) => b.score - a.score);
-  const top = allResults.slice(0, limit);
-
-  return {
-    query,
-    resultsCount: top.length,
-    results: top.map((r, idx) => {
-      const absoluteFilePath = resolve(r.repoPath, r.file_path);
-      const totalLines = getFileTotalLines(absoluteFilePath);
-      const enclosingContext = findEnclosingContext(r.content, r.line_start);
-      return {
-        rank: idx + 1,
-        absolutePath: absoluteFilePath,
-        relativePath: `${r.repoName}/${r.file_path}`,
-        lines: `${r.line_start}-${r.line_end}`,
-        totalLines,
-        enclosingContext,
-        score: (r.score * 100).toFixed(1),
-        snippet: r.content.split('\n').slice(0, 30).join('\n'),
-      };
-    }),
-  };
-}
-
 if (parentPort) {
   parentPort.on('message', async (msg) => {
     try {
       if (msg.type === 'health-check') {
         parentPort.postMessage({ id: -1, type: 'pong' });
-        return;
-      }
-
-      if (msg.type === 'index-all') {
-        const folders = msg.workspacePaths || getWorkspaceFolders(msg.workspacePath || '');
-        let indexed = 0;
-        for (const folder of folders) {
-          if (existsSync(folder)) {
-            await initializeIndex(folder);
-            indexed++;
-          }
-        }
-        parentPort.postMessage({ id: msg.id, result: { indexed, message: `Indexed ${indexed} repositories` } });
-        return;
-      }
-
-      if (msg.type === 'search-all') {
-        const folders = msg.workspacePaths || getWorkspaceFolders(msg.workspacePath || '');
-        const result = await performSearchAll(folders, msg.query, msg.limit || 10);
-        parentPort.postMessage({ id: msg.id, result });
         return;
       }
 

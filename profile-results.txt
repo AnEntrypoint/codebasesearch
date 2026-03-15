@@ -1,0 +1,248 @@
+Performance profiling across codebases...
+This will take several minutes.
+
+
+▶ Profiling xbot...
+  Scanned: 7 chunks in 8ms
+Vector store initialized
+Loading embeddings model (this may take a moment on first run)...
+dtype not specified for "model". Using the default dtype (fp32) for this device (cpu).
+Indexed 7 chunks
+  Embeddings: 7/7 chunks in 1530ms
+Searching for: "function class method"
+  Text search: 7 results in 88ms
+
+▶ Profiling fsbrowse...
+  Scanned: 6 chunks in 7ms
+Vector store initialized
+Indexed 6 chunks
+  Embeddings: 6/6 chunks in 1126ms
+Searching for: "function class method"
+  Text search: 6 results in 26ms
+
+▶ Profiling agentauth...
+  Scanned: 11 chunks in 2ms
+Vector store initialized
+Indexed 11 chunks
+  Embeddings: 11/11 chunks in 1957ms
+Searching for: "function class method"
+  Text search: 10 results in 40ms
+
+▶ Profiling webtalk...
+  Scanned: 40 chunks in 28ms
+Vector store initialized
+Indexed 32 chunks
+Indexed 8 chunks
+  Embeddings: 40/40 chunks in 6680ms
+Searching for: "function class method"
+  Text search: 10 results in 80ms
+
+▶ Profiling plugforge...
+  Scanned: 66 chunks in 11ms
+Vector store initialized
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 2 chunks
+  Embeddings: 66/66 chunks in 10923ms
+Searching for: "function class method"
+  Text search: 10 results in 83ms
+
+▶ Profiling agentgui...
+  Scanned: 83 chunks in 10ms
+Vector store initialized
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 19 chunks
+  Embeddings: 83/83 chunks in 16535ms
+Searching for: "function class method"
+  Text search: 10 results in 146ms
+
+▶ Profiling seqos...
+  Scanned: 76 chunks in 9ms
+Vector store initialized
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 12 chunks
+  Embeddings: 76/76 chunks in 13730ms
+Searching for: "function class method"
+  Text search: 10 results in 113ms
+
+▶ Profiling docmcp...
+  Scanned: 74 chunks in 53ms
+Vector store initialized
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 10 chunks
+  Embeddings: 74/74 chunks in 13526ms
+Searching for: "function class method"
+  Text search: 10 results in 95ms
+
+▶ Profiling zellous...
+  Scanned: 77 chunks in 54ms
+Vector store initialized
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 13 chunks
+  Embeddings: 77/77 chunks in 13463ms
+Searching for: "function class method"
+  Text search: 10 results in 120ms
+
+▶ Profiling teatree...
+  Scanned: 93 chunks in 10ms
+Vector store initialized
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 29 chunks
+  Embeddings: 93/93 chunks in 15931ms
+Searching for: "function class method"
+  Text search: 10 results in 82ms
+
+▶ Profiling moonlanding...
+  Scanned: 323 chunks in 35ms
+Vector store initialized
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 3 chunks
+  Embeddings: 323/323 chunks in 69519ms
+Searching for: "function class method"
+  Text search: 10 results in 672ms
+
+▶ Profiling pp...
+  Scanned: 1041 chunks in 461ms
+Vector store initialized
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 32 chunks
+Indexed 17 chunks
+  Embeddings: 1041/1041 chunks in 286137ms
+Searching for: "function class method"
+  Text search: 10 results in 1312ms
+
+================================================================================
+PERFORMANCE PROFILE
+================================================================================
+
+scan:
+  Total: 687.90ms
+  Avg:   57.32ms
+  Min:   2.05ms
+  Max:   461.34ms
+  Count: 12
+  Per-chunk: 8.189ms/chunk
+
+embeddings:
+  Total: 451057.24ms
+  Avg:   37588.10ms
+  Min:   1125.83ms
+  Max:   286136.65ms
+  Count: 12
+  Per-chunk: 5369.729ms/chunk
+
+search-text:
+  Total: 2856.57ms
+  Avg:   238.05ms
+  Min:   26.30ms
+  Max:   1311.63ms
+  Count: 12
+  Per-chunk: 34.007ms/chunk
+
+--------------------------------------------------------------------------------
+CODEBASE TIMING
+--------------------------------------------------------------------------------
+
+xbot (7 chunks): 1625ms
+  scan: 8ms (0.5%)
+  embeddings: 1530ms (94.1%)
+  search-text: 88ms (5.4%)
+
+fsbrowse (6 chunks): 1159ms
+  scan: 7ms (0.6%)
+  embeddings: 1126ms (97.1%)
+  search-text: 26ms (2.3%)
+
+agentauth (11 chunks): 1999ms
+  scan: 2ms (0.1%)
+  embeddings: 1957ms (97.9%)
+  search-text: 40ms (2.0%)
+
+webtalk (40 chunks): 6788ms
+  scan: 28ms (0.4%)
+  embeddings: 6680ms (98.4%)
+  search-text: 80ms (1.2%)
+
+plugforge (66 chunks): 11018ms
+  scan: 11ms (0.1%)
+  embeddings: 10923ms (99.1%)
+  search-text: 83ms (0.8%)
+
+agentgui (83 chunks): 16691ms
+  scan: 10ms (0.1%)
+  embeddings: 16535ms (99.1%)
+  search-text: 146ms (0.9%)
+
+seqos (76 chunks): 13852ms
+  scan: 9ms (0.1%)
+  embeddings: 13730ms (99.1%)
+  search-text: 113ms (0.8%)
+
+docmcp (74 chunks): 13674ms
+  scan: 53ms (0.4%)
+  embeddings: 13526ms (98.9%)
+  search-text: 95ms (0.7%)
+
+zellous (77 chunks): 13637ms
+  scan: 54ms (0.4%)
+  embeddings: 13463ms (98.7%)
+  search-text: 120ms (0.9%)
+
+teatree (93 chunks): 16023ms
+  scan: 10ms (0.1%)
+  embeddings: 15931ms (99.4%)
+  search-text: 82ms (0.5%)
+
+moonlanding (323 chunks): 70226ms
+  scan: 35ms (0.0%)
+  embeddings: 69519ms (99.0%)
+  search-text: 672ms (1.0%)
+
+pp (1041 chunks): 287910ms
+  scan: 461ms (0.2%)
+  embeddings: 286137ms (99.4%)
+  search-text: 1312ms (0.5%)
