@@ -38,31 +38,30 @@ function tokenizeToFrequency(text, index, chunkIdx) {
       const camelTokens = word.match(/[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|\d|\W|$)|[0-9]+/g);
       if (camelTokens) {
         for (const t of camelTokens) {
-          if (t.length > 1) addToken(t.toLowerCase(), frequency, index, chunkIdx);
+          if (t.length > 1) frequency.set(t.toLowerCase(), (frequency.get(t.toLowerCase()) || 0) + 1);
         }
       }
     }
 
     const cleaned = word.replace(/[^\w]/g, '').toLowerCase();
     if (cleaned.length > 1) {
-      addToken(cleaned, frequency, index, chunkIdx);
+      frequency.set(cleaned, (frequency.get(cleaned) || 0) + 1);
       if (word.includes('-') || word.includes('_') || word.includes('.')) {
         for (const part of word.split(/[-_.]/)) {
           const partCleaned = part.replace(/[^\w]/g, '').toLowerCase();
-          if (partCleaned.length > 1 && partCleaned !== cleaned) addToken(partCleaned, frequency, index, chunkIdx);
+          if (partCleaned.length > 1 && partCleaned !== cleaned) frequency.set(partCleaned, (frequency.get(partCleaned) || 0) + 1);
         }
       }
     }
   }
 
-  return frequency;
-}
+  for (const token of frequency.keys()) {
+    let docSet = index.get(token);
+    if (!docSet) { docSet = new Set(); index.set(token, docSet); }
+    docSet.add(chunkIdx);
+  }
 
-function addToken(token, frequency, index, chunkIdx) {
-  frequency.set(token, (frequency.get(token) || 0) + 1);
-  let docSet = index.get(token);
-  if (!docSet) { docSet = new Set(); index.set(token, docSet); }
-  docSet.add(chunkIdx);
+  return frequency;
 }
 
 export function searchText(query, chunks, indexData) {

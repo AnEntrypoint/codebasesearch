@@ -29,6 +29,7 @@ const CODEBASES = [
   '~/workspace/webtalk-repo',
   '~/workspace/xbot',
   '~/workspace/zellous',
+  '~/docstudio',
 ];
 
 // Realistic queries that represent actual usage

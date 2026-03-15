@@ -11,3 +11,7 @@ __tests__/
 .env
 .env.*
 .git*
+.prd
+.code-search/
+profile.js
+profile-results.txt
