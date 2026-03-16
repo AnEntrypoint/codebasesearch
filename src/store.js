@@ -1,6 +1,22 @@
 import { connect } from 'vectordb';
 import { join } from 'path';
-import { mkdirSync, existsSync } from 'fs';
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
+
+let mtimeIndexPath = null;
+
+function loadMtimeIndex() {
+  if (!mtimeIndexPath || !existsSync(mtimeIndexPath)) return {};
+  try {
+    return JSON.parse(readFileSync(mtimeIndexPath, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function saveMtimeIndex(map) {
+  if (!mtimeIndexPath) return;
+  writeFileSync(mtimeIndexPath, JSON.stringify(map), 'utf8');
+}
 
 let dbConnection = null;
 let tableRef = null;
@@ -14,12 +30,13 @@ export async function initStore(dbPath) {
     mkdirSync(dbDir, { recursive: true });
   }
 
+  mtimeIndexPath = join(dbPath, 'mtime-index.json');
+
   try {
     // Connect to LanceDB (embedded, file-based, no network)
     // Use absolute path for Windows compatibility
     dbConnection = await connect({
-      uri: dbDir,
-      mode: 'overwrite'
+      uri: dbDir
     });
     isFirstBatch = true;
     console.error('Vector store initialized');
@@ -71,27 +88,27 @@ export async function upsertChunks(chunks) {
   try {
     let table = null;
 
-    if (isFirstBatch) {
-      // First batch: try to open existing table, or create new one
-      try {
-        table = await dbConnection.openTable(tableName);
-        await table.overwrite(data);
-      } catch (e) {
+    try {
+      table = await dbConnection.openTable(tableName);
+      await table.add(data);
+    } catch (e) {
+      if (isFirstBatch) {
         table = await dbConnection.createTable(tableName, data);
-      }
-      isFirstBatch = false;
-    } else {
-      // Subsequent batches: add to existing table
-      try {
-        table = await dbConnection.openTable(tableName);
-        await table.add(data);
-      } catch (e) {
+      } else {
         console.error('Failed to add to table:', e.message);
         throw e;
       }
     }
+    isFirstBatch = false;
 
     tableRef = table;
+
+    const mtimes = loadMtimeIndex();
+    for (const chunk of data) {
+      mtimes[chunk.file_path] = chunk.mtime;
+    }
+    saveMtimeIndex(mtimes);
+
     console.error(`Indexed ${chunks.length} chunks`);
   } catch (e) {
     console.error('Failed to upsert chunks:', e.message);
@@ -175,14 +192,25 @@ export async function getRowCount() {
 }
 
 export async function getIndexedFiles() {
-  if (!tableRef) {
-    return {};
+  return loadMtimeIndex();
+}
+
+export async function deleteChunksForFiles(filePaths) {
+  if (!tableRef || filePaths.length === 0) {
+    return;
   }
 
-  // For now, we'll do a full reindex each time
-  // This ensures the index is always up-to-date
-  // Future optimization: store a metadata file with mtimes
-  return {};
+  try {
+    const escaped = filePaths.map(p => `'${p.replace(/'/g, "''")}'`).join(', ');
+    await tableRef.delete(`file_path IN (${escaped})`);
+    vectorSearchCache.clear();
+
+    const mtimes = loadMtimeIndex();
+    for (const fp of filePaths) delete mtimes[fp];
+    saveMtimeIndex(mtimes);
+  } catch (e) {
+    console.error('Failed to delete chunks:', e.message);
+  }
 }
 
 export async function closeStore() {

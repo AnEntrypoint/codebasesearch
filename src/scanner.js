@@ -44,13 +44,13 @@ function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
         }
         if (isCodeFile(normalizedRelPath) && !isBinaryFile(entry.name)) {
           try {
-            const stat = entry.isSymbolicLink ? null : statSync(fullPath);
+            const stat = entry.isSymbolicLink() ? null : statSync(fullPath);
             const maxSize = 5 * 1024 * 1024;
             if (!stat || stat.size <= maxSize) {
               files.push({
                 fullPath,
                 relativePath: normalizedRelPath,
-                mtime: stat ? stat.mtime.getTime() : Date.now()
+                mtime: stat ? Math.floor(stat.mtime.getTime() / 1000) : Math.floor(Date.now() / 1000)
               });
             }
           } catch (e) {

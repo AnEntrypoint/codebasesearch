@@ -4,7 +4,7 @@ import { existsSync, readFileSync, appendFileSync, writeFileSync } from 'fs';
 import { loadIgnorePatterns } from './ignore-parser.js';
 import { scanRepository } from './scanner.js';
 import { generateEmbeddings } from './embeddings.js';
-import { initStore, upsertChunks, closeStore } from './store.js';
+import { initStore, upsertChunks, closeStore, getIndexedFiles, deleteChunksForFiles, getTable } from './store.js';
 import { executeSearch, formatResults } from './search.js';
 import { startMcpServer } from '../mcp.js';
 
@@ -65,46 +65,69 @@ export async function run(args) {
 
     // Initialize store
     await initStore(dbPath);
+    await getTable();
 
     // Scan repository
     console.log('Scanning repository...');
     const chunks = scanRepository(rootPath, ignorePatterns);
     console.log(`Found ${chunks.length} code chunks\n`);
 
-    // Always reindex to ensure freshness
-    console.log('Generating embeddings and indexing...');
+    // Incremental indexing: only re-embed changed/new files
+    const indexedFiles = await getIndexedFiles();
 
-    // Generate embeddings in batches and upsert immediately to free memory
-    // Optimize batch size based on chunk count (larger batches are more efficient)
-    let batchSize = 32;
-    if (chunks.length > 500) batchSize = 64;
-    if (chunks.length > 1000) batchSize = 96;
-
-    let processedCount = 0;
-    let embeddingsAvailable = true;
-
-    try {
-      for (let i = 0; i < chunks.length; i += batchSize) {
-        const batchChunks = chunks.slice(i, i + batchSize);
-        const batchTexts = batchChunks.map(c => c.content);
-        const batchEmbeddings = await generateEmbeddings(batchTexts);
-
-        // Create batch with embeddings
-        const batchWithEmbeddings = batchChunks.map((chunk, idx) => ({
-          ...chunk,
-          vector: batchEmbeddings[idx]
-        }));
-
-        // Upsert immediately to free memory
-        await upsertChunks(batchWithEmbeddings);
-        processedCount += batchWithEmbeddings.length;
-      }
-    } catch (embeddingError) {
-      console.warn(`Warning: Embedding generation failed (${embeddingError.message}). Using text-only search.\n`);
-      embeddingsAvailable = false;
+    // Build per-file mtime from scanned chunks
+    const scannedMtimes = {};
+    for (const chunk of chunks) {
+      scannedMtimes[chunk.file_path] = chunk.mtime;
     }
 
-    console.log('Index created\n');
+    // Files to re-index: new or mtime changed
+    const filesToReindex = new Set();
+    for (const [fp, mtime] of Object.entries(scannedMtimes)) {
+      if (indexedFiles[fp] === undefined || indexedFiles[fp] !== mtime) {
+        filesToReindex.add(fp);
+      }
+    }
+
+    // Files deleted from disk but still in index
+    const scannedSet = new Set(Object.keys(scannedMtimes));
+    const deletedFiles = Object.keys(indexedFiles).filter(fp => !scannedSet.has(fp));
+    const filesToDelete = [...deletedFiles, ...filesToReindex];
+
+    if (filesToDelete.length > 0) {
+      await deleteChunksForFiles(filesToDelete);
+    }
+
+    const chunksToIndex = chunks.filter(c => filesToReindex.has(c.file_path));
+    console.log(`Files to re-index: ${filesToReindex.size} (${chunksToIndex.length} chunks), deleted: ${deletedFiles.length}\n`);
+
+    let embeddingsAvailable = true;
+
+    if (chunksToIndex.length > 0) {
+      console.log('Generating embeddings and indexing...');
+      let batchSize = 32;
+      if (chunksToIndex.length > 500) batchSize = 64;
+      if (chunksToIndex.length > 1000) batchSize = 96;
+
+      try {
+        for (let i = 0; i < chunksToIndex.length; i += batchSize) {
+          const batchChunks = chunksToIndex.slice(i, i + batchSize);
+          const batchTexts = batchChunks.map(c => c.content);
+          const batchEmbeddings = await generateEmbeddings(batchTexts);
+          const batchWithEmbeddings = batchChunks.map((chunk, idx) => ({
+            ...chunk,
+            vector: batchEmbeddings[idx]
+          }));
+          await upsertChunks(batchWithEmbeddings);
+        }
+      } catch (embeddingError) {
+        console.warn(`Warning: Embedding generation failed (${embeddingError.message}). Using text-only search.\n`);
+        embeddingsAvailable = false;
+      }
+      console.log('Index updated\n');
+    } else {
+      console.log('Index up-to-date, skipping embedding\n');
+    }
 
     // Execute search with chunks for hybrid search (text-only if embeddings failed)
     const results = await executeSearch(query, 10, chunks);
