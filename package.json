@@ -1,7 +1,7 @@
 {
   "name": "codebasesearch",
   "version": "0.1.28",
-  "description": "Ultra-simple code search tool with Jina embeddings, LanceDB, and MCP protocol support",
+  "description": "Ultra-simple code search tool with Jina embeddings, BusyBase/LanceDB, and MCP protocol support",
   "type": "module",
   "bin": {
     "codebasesearch": "./bin/code-search.js",
@@ -26,6 +26,7 @@
     "@huggingface/transformers": "^3.8.1",
     "@modelcontextprotocol/sdk": "1.0.0",
     "apache-arrow": "^14.0.0",
+    "busybase": "^1.0.0",
     "fast-glob": "^3.3.2",
     "onnxruntime-node": "^1.23.2",
     "onnxruntime-web": "^1.19.0",
