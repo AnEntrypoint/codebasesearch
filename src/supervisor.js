@@ -111,7 +111,10 @@ export class WorkerSupervisor {
   }
 
   shutdown() {
-    if (this.healthCheckInterval) clearInterval(this.healthCheckInterval);
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
     if (this.worker) {
       try {
         this.worker.terminate();

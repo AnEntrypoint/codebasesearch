@@ -20,7 +20,8 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "start": "node ./bin/code-search.js"
+    "start": "node ./bin/code-search.js",
+    "test": "node --test --test-force-exit tests/test-ignore-parser.js tests/test-scanner.js tests/test-text-search.js tests/test-search-logic.js tests/test-store.js tests/test-cli.js tests/test-embeddings.js tests/test-supervisor.js tests/test-search-worker.js tests/test-mcp-server.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
