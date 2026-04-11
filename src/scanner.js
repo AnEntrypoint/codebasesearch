@@ -45,7 +45,7 @@ function walkDirectory(dirPath, ignorePatterns, relativePath = '') {
         if (isCodeFile(normalizedRelPath) && !isBinaryFile(entry.name)) {
           try {
             const stat = entry.isSymbolicLink() ? null : statSync(fullPath);
-            const maxSize = 5 * 1024 * 1024;
+            const maxSize = 20 * 1024 * 1024;
             if (!stat || stat.size <= maxSize) {
               files.push({
                 fullPath,
