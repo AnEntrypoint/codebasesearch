@@ -26,3 +26,9 @@ Thumbs.db
 .env.local
 .glootie-stop-verified
 .gm-stop-verified
+
+# Code intel cache
+.codeinsight
+
+# Crash dumps
+*.stackdump

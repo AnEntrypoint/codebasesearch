@@ -97,19 +97,18 @@ export function scanRepository(rootPath, ignorePatterns) {
     try {
       const content = readFileSync(file.fullPath, 'utf8');
       const mtime = file.mtime;
+      const lines = content.split('\n');
 
-      // For small files, treat as single chunk
-      if (content.split('\n').length <= 60) {
+      if (lines.length <= 60) {
         chunks.push({
           file_path: file.relativePath,
           chunk_index: 0,
           content,
           line_start: 1,
-          line_end: content.split('\n').length,
+          line_end: lines.length,
           mtime
         });
       } else {
-        // For large files, chunk them
         const fileChunks = chunkContent(content);
         fileChunks.forEach((chunk, idx) => {
           chunks.push({
@@ -122,9 +121,7 @@ export function scanRepository(rootPath, ignorePatterns) {
           });
         });
       }
-    } catch (e) {
-      // Ignore read errors for individual files
-    }
+    } catch {}
   }
 
   return chunks;

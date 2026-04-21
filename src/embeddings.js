@@ -3,59 +3,69 @@ import { rmSync, existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 
-// Force WASM backend only - disable onnxruntime-node to avoid memory issues on Windows
-try {
-  env.backends.onnx.wasm.numThreads = 1;
-  env.backends.onnx.ort = null;
-} catch (e) {
-  // Continue even if env config fails
-}
+const DEVICE_PREFERENCE = (process.env.CODEBASESEARCH_DEVICE || 'auto').toLowerCase();
+const DTYPE_PREFERENCE = (process.env.CODEBASESEARCH_DTYPE || 'auto').toLowerCase();
+const DEVICE_ORDER = ['cuda', 'dml', 'webgpu', 'wasm'];
 
 let modelCache = null;
 let cacheCleared = false;
 let modelLoadTime = 0;
+let resolvedDevice = null;
+let resolvedDtype = null;
 
 function clearModelCache() {
   const cacheDirs = [
     join(homedir(), '.cache', 'huggingface', 'transformers'),
     join(process.cwd(), 'node_modules', '@huggingface', 'transformers', '.cache'),
   ];
-
   for (const cacheDir of cacheDirs) {
     try {
-      if (existsSync(cacheDir)) {
-        rmSync(cacheDir, { recursive: true, force: true });
-      }
-    } catch (e) {
-      // Ignore errors, continue with next cache dir
-    }
+      if (existsSync(cacheDir)) rmSync(cacheDir, { recursive: true, force: true });
+    } catch {}
   }
   console.error('Cleared corrupted model cache');
 }
 
-async function getModel(retryOnError = true) {
-  if (modelCache) {
-    return modelCache;
+function candidateDevices() {
+  if (DEVICE_PREFERENCE !== 'auto') return [DEVICE_PREFERENCE, 'wasm'];
+  return DEVICE_ORDER;
+}
+
+async function tryLoadWith(device, dtype) {
+  const options = { device };
+  if (dtype && dtype !== 'auto') options.dtype = dtype;
+  return await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', options);
+}
+
+async function loadModel() {
+  const devices = candidateDevices();
+  const dtypes = DTYPE_PREFERENCE === 'auto' ? ['fp32', 'q8'] : [DTYPE_PREFERENCE];
+  const errors = [];
+  for (const device of devices) {
+    for (const dtype of dtypes) {
+      try {
+        console.error(`Loading embeddings model on device=${device} dtype=${dtype}...`);
+        const t0 = performance.now();
+        const model = await tryLoadWith(device, dtype);
+        modelLoadTime = performance.now() - t0;
+        resolvedDevice = device;
+        resolvedDtype = dtype;
+        console.error(`Model loaded on ${device} (${dtype}) in ${modelLoadTime.toFixed(0)}ms`);
+        return model;
+      } catch (e) {
+        errors.push(`${device}/${dtype}: ${e.message}`);
+      }
+    }
   }
+  throw new Error('All device/dtype combinations failed:\n' + errors.join('\n'));
+}
 
-  const modelStart = performance.now();
-  console.error('Loading embeddings model (this may take a moment on first run)...');
-
-  const modelLoadPromise = pipeline(
-    'feature-extraction',
-    'Xenova/all-minilm-l6-v2'
-  );
-
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Model loading timeout after 5 minutes')), 300000)
-  );
-
+async function getModel(retryOnError = true) {
+  if (modelCache) return modelCache;
   try {
-    modelCache = await Promise.race([modelLoadPromise, timeoutPromise]);
-    modelLoadTime = performance.now() - modelStart;
+    modelCache = await loadModel();
   } catch (e) {
-    if (retryOnError && !cacheCleared && (e.message.includes('Protobuf') || e.message.includes('parsing'))) {
-      console.error('Detected corrupted cache, clearing and retrying...');
+    if (retryOnError && !cacheCleared && /Protobuf|parsing|corrupt/i.test(e.message)) {
       cacheCleared = true;
       clearModelCache();
       modelCache = null;
@@ -64,67 +74,44 @@ async function getModel(retryOnError = true) {
     console.error('Error loading model:', e.message);
     throw e;
   }
-
   return modelCache;
 }
 
-export function getModelLoadTime() {
-  return modelLoadTime;
-}
+export function getModelLoadTime() { return modelLoadTime; }
+export function getResolvedDevice() { return resolvedDevice; }
+export function getResolvedDtype() { return resolvedDtype; }
 
 export async function generateEmbeddings(texts) {
   const model = await getModel();
+  if (!Array.isArray(texts)) texts = [texts];
 
-  if (!Array.isArray(texts)) {
-    texts = [texts];
-  }
-
-  // Generate embeddings for all texts with timeout per batch
   const embeddings = await Promise.race([
-    model(texts, {
-      pooling: 'mean',
-      normalize: true
-    }),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Embedding generation timeout')), 60000)
-    )
+    model(texts, { pooling: 'mean', normalize: true }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Embedding generation timeout')), 120000))
   ]);
 
-  // Convert to regular arrays
   const result = [];
-
-  // embeddings is a Tensor, convert to array
   if (embeddings && embeddings.data) {
-    const data = Array.from(embeddings.data);
+    const data = embeddings.data;
     const shape = embeddings.dims;
-
-    // Shape is [batchSize, embeddingDim]
     if (shape && shape.length === 2) {
       const [batchSize, embeddingDim] = shape;
       for (let i = 0; i < batchSize; i++) {
-        const start = i * embeddingDim;
-        const end = start + embeddingDim;
-        result.push(data.slice(start, end));
+        result.push(Array.from(data.subarray(i * embeddingDim, (i + 1) * embeddingDim)));
       }
     } else {
-      // Fallback: assume single embedding
-      result.push(data);
+      result.push(Array.from(data));
     }
   } else if (Array.isArray(embeddings)) {
-    // Already an array
     for (const emb of embeddings) {
-      if (emb.data) {
-        result.push(Array.from(emb.data));
-      } else {
-        result.push(Array.from(emb));
-      }
+      if (emb.data) result.push(Array.from(emb.data));
+      else result.push(Array.from(emb));
     }
   }
-
   return result;
 }
 
 export async function generateSingleEmbedding(text) {
-  const embeddings = await generateEmbeddings([text]);
-  return embeddings[0];
+  const e = await generateEmbeddings([text]);
+  return e[0];
 }

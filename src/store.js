@@ -22,6 +22,8 @@ let dbConnection = null;
 let tableRef = null;
 let isFirstBatch = true;
 let vectorSearchCache = new Map();
+let mtimeCache = null;
+let mtimeDirty = false;
 
 export async function initStore(dbPath) {
   // Ensure directory exists
@@ -103,11 +105,9 @@ export async function upsertChunks(chunks) {
 
     tableRef = table;
 
-    const mtimes = loadMtimeIndex();
-    for (const chunk of data) {
-      mtimes[chunk.file_path] = chunk.mtime;
-    }
-    saveMtimeIndex(mtimes);
+    if (mtimeCache === null) mtimeCache = loadMtimeIndex();
+    for (const chunk of data) mtimeCache[chunk.file_path] = chunk.mtime;
+    mtimeDirty = true;
 
     console.error(`Indexed ${chunks.length} chunks`);
   } catch (e) {
@@ -192,32 +192,39 @@ export async function getRowCount() {
 }
 
 export async function getIndexedFiles() {
-  return loadMtimeIndex();
+  if (mtimeCache === null) mtimeCache = loadMtimeIndex();
+  return mtimeCache;
 }
 
 export async function deleteChunksForFiles(filePaths) {
-  if (!tableRef || filePaths.length === 0) {
-    return;
-  }
-
+  if (!tableRef || filePaths.length === 0) return;
   try {
     const escaped = filePaths.map(p => `'${p.replace(/'/g, "''")}'`).join(', ');
     await tableRef.delete(`file_path IN (${escaped})`);
     vectorSearchCache.clear();
 
-    const mtimes = loadMtimeIndex();
-    for (const fp of filePaths) delete mtimes[fp];
-    saveMtimeIndex(mtimes);
+    if (mtimeCache === null) mtimeCache = loadMtimeIndex();
+    for (const fp of filePaths) delete mtimeCache[fp];
+    mtimeDirty = true;
   } catch (e) {
     console.error('Failed to delete chunks:', e.message);
   }
 }
 
 export async function closeStore() {
-  // LanceDB doesn't require explicit close in embedded mode
-  // But we clear references for cleanliness
+  if (mtimeDirty && mtimeCache) {
+    saveMtimeIndex(mtimeCache);
+    mtimeDirty = false;
+  }
   if (dbConnection) {
     dbConnection = null;
     tableRef = null;
+  }
+}
+
+export function flushMtimeIndex() {
+  if (mtimeDirty && mtimeCache) {
+    saveMtimeIndex(mtimeCache);
+    mtimeDirty = false;
   }
 }

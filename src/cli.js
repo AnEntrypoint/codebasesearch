@@ -105,11 +105,11 @@ export async function run(args) {
 
     if (chunksToIndex.length > 0) {
       console.log('Generating embeddings and indexing...');
-      let batchSize = 32;
-      if (chunksToIndex.length > 500) batchSize = 64;
-      if (chunksToIndex.length > 1000) batchSize = 96;
+      const batchSize = Number(process.env.CODEBASESEARCH_BATCH_SIZE) ||
+        (chunksToIndex.length > 1000 ? 128 : chunksToIndex.length > 500 ? 96 : 64);
 
       try {
+        let pendingUpsert = Promise.resolve();
         for (let i = 0; i < chunksToIndex.length; i += batchSize) {
           const batchChunks = chunksToIndex.slice(i, i + batchSize);
           const batchTexts = batchChunks.map(c => c.content);
@@ -118,8 +118,10 @@ export async function run(args) {
             ...chunk,
             vector: batchEmbeddings[idx]
           }));
-          await upsertChunks(batchWithEmbeddings);
+          await pendingUpsert;
+          pendingUpsert = upsertChunks(batchWithEmbeddings);
         }
+        await pendingUpsert;
       } catch (embeddingError) {
         console.warn(`Warning: Embedding generation failed (${embeddingError.message}). Using text-only search.\n`);
         embeddingsAvailable = false;
