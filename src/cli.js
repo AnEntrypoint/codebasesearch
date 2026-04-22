@@ -105,7 +105,7 @@ export async function run(args) {
 
     if (chunksToIndex.length > 0) {
       console.log('Generating embeddings and indexing...');
-      const batchSize = Number(process.env.CODEBASESEARCH_BATCH_SIZE) || 128;
+      const batchSize = Number(process.env.CODEBASESEARCH_BATCH_SIZE) || 64;
 
       try {
         let pendingUpsert = Promise.resolve();
