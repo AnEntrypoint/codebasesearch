@@ -9,12 +9,19 @@ const DEVICE_ID_OVERRIDE = process.env.CODEBASESEARCH_DEVICE_ID !== undefined
     ? Number(process.env.CODEBASESEARCH_DEVICE_ID) : null;
 const DEVICE_ORDER = ['cuda', 'dml', 'webgpu', 'wasm'];
 const DML_MAX_ADAPTERS = 8;
-const PROBE_TEXT = 'medical cardiac arrhythmia diagnosis evaluation treatment protocol summary '.repeat(8);
-const PROBE_BATCH = 16;
+const PROBE_TEXT = 'medical cardiac arrhythmia diagnosis evaluation treatment protocol summary '.repeat(32);
+const PROBE_BATCH = 64;
+const PROBE_RUNS = 3;
 const CACHE_FILE = join(homedir(), '.cache', 'codebasesearch', 'device.json');
 
+const CACHE_SCHEMA = 2;
+
 function readDeviceCache() {
-    try { return JSON.parse(readFileSync(CACHE_FILE, 'utf8')); } catch { return null; }
+    try {
+        const obj = JSON.parse(readFileSync(CACHE_FILE, 'utf8'));
+        if (obj.schema !== CACHE_SCHEMA) return null;
+        return obj;
+    } catch { return null; }
 }
 
 function writeDeviceCache(obj) {
@@ -61,9 +68,22 @@ async function tryLoadWith(device, dtype, deviceId) {
 async function benchModel(model) {
     const batch = Array.from({ length: PROBE_BATCH }, () => PROBE_TEXT);
     await model(batch, { pooling: 'mean', normalize: true });
-    const t0 = performance.now();
-    await model(batch, { pooling: 'mean', normalize: true });
-    return (performance.now() - t0) / PROBE_BATCH;
+    let best = Infinity;
+    for (let i = 0; i < PROBE_RUNS; i++) {
+        const t0 = performance.now();
+        await model(batch, { pooling: 'mean', normalize: true });
+        const ms = (performance.now() - t0) / PROBE_BATCH;
+        if (ms < best) best = ms;
+    }
+    return best;
+}
+
+function sampleNvidiaMem() {
+    try {
+        const { execSync } = require('child_process');
+        const out = execSync('nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits', { encoding: 'utf8', stdio: ['ignore','pipe','ignore'] });
+        return Number(out.trim().split('\n')[0]) || 0;
+    } catch { return null; }
 }
 
 async function probeBestDmlAdapter(dtype) {
@@ -71,18 +91,28 @@ async function probeBestDmlAdapter(dtype) {
         const model = await tryLoadWith('dml', dtype, DEVICE_ID_OVERRIDE);
         return { model, deviceId: DEVICE_ID_OVERRIDE, msPerItem: null };
     }
-    let best = null;
+    const candidates = [];
     for (let deviceId = 0; deviceId < DML_MAX_ADAPTERS; deviceId++) {
         try {
+            const memBefore = sampleNvidiaMem();
             const model = await tryLoadWith('dml', dtype, deviceId);
             const msPerItem = await benchModel(model);
-            console.error(`  dml deviceId=${deviceId}: ${msPerItem.toFixed(2)} ms/item`);
-            if (!best || msPerItem < best.msPerItem) best = { model, deviceId, msPerItem };
+            const memAfter = sampleNvidiaMem();
+            const nvidiaDelta = (memBefore !== null && memAfter !== null) ? memAfter - memBefore : 0;
+            const isNvidia = nvidiaDelta >= 50;
+            console.error(`  dml deviceId=${deviceId}: ${msPerItem.toFixed(2)} ms/item${isNvidia ? ' [NVIDIA +' + nvidiaDelta + 'MB]' : ''}`);
+            candidates.push({ model, deviceId, msPerItem, isNvidia });
         } catch (e) {
             if (e.message.includes('adapter') || e.message.includes('deviceId') || e.message.includes('DXGI')) break;
         }
     }
-    if (!best) throw new Error('No DML adapter available');
+    if (!candidates.length) throw new Error('No DML adapter available');
+    const fastest = candidates.reduce((a, b) => a.msPerItem <= b.msPerItem ? a : b);
+    const threshold = fastest.msPerItem * 1.15;
+    const tied = candidates.filter(c => c.msPerItem <= threshold);
+    const nvidiaTied = tied.find(c => c.isNvidia);
+    const best = nvidiaTied || fastest;
+    if (best !== fastest) console.error(`  tiebreak: NVIDIA deviceId=${best.deviceId} preferred over fastest deviceId=${fastest.deviceId}`);
     return best;
 }
 
@@ -130,7 +160,7 @@ async function loadModel() {
                 resolvedDevice = device;
                 resolvedDtype = dtype;
                 resolvedDeviceId = deviceId;
-                writeDeviceCache({ device, dtype, deviceId, cachedAt: new Date().toISOString() });
+                writeDeviceCache({ schema: CACHE_SCHEMA, device, dtype, deviceId, cachedAt: new Date().toISOString() });
                 console.error(`Model ready on ${device}${deviceId !== null ? `:${deviceId}` : ''} (${dtype}) in ${modelLoadTime.toFixed(0)}ms`);
                 return model;
             } catch (e) {
