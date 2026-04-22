@@ -5,7 +5,8 @@
   "type": "module",
   "bin": {
     "codebasesearch": "./bin/code-search.js",
-    "codebasesearch-mcp": "./mcp.js"
+    "codebasesearch-mcp": "./mcp.js",
+    "codebasesearch-setup": "./bin/setup.js"
   },
   "main": "src/cli.js",
   "repository": {
