@@ -86,24 +86,34 @@ function sampleNvidiaMem() {
     } catch { return null; }
 }
 
+async function disposeModel(model) {
+    try { if (model?.dispose) await model.dispose(); } catch {}
+    try { if (model?.model?.dispose) await model.model.dispose(); } catch {}
+}
+
 async function probeBestDmlAdapter(dtype) {
     if (DEVICE_ID_OVERRIDE !== null) {
         const model = await tryLoadWith('dml', dtype, DEVICE_ID_OVERRIDE);
         return { model, deviceId: DEVICE_ID_OVERRIDE, msPerItem: null };
     }
+    const baselineMem = sampleNvidiaMem();
     const candidates = [];
+    let priorMem = baselineMem;
     for (let deviceId = 0; deviceId < DML_MAX_ADAPTERS; deviceId++) {
+        let model = null;
         try {
-            const memBefore = sampleNvidiaMem();
-            const model = await tryLoadWith('dml', dtype, deviceId);
+            model = await tryLoadWith('dml', dtype, deviceId);
             const msPerItem = await benchModel(model);
             const memAfter = sampleNvidiaMem();
-            const nvidiaDelta = (memBefore !== null && memAfter !== null) ? memAfter - memBefore : 0;
+            const nvidiaDelta = (priorMem !== null && memAfter !== null) ? memAfter - priorMem : 0;
             const isNvidia = nvidiaDelta >= 50;
+            priorMem = memAfter;
             console.error(`  dml deviceId=${deviceId}: ${msPerItem.toFixed(2)} ms/item${isNvidia ? ' [NVIDIA +' + nvidiaDelta + 'MB]' : ''}`);
-            candidates.push({ model, deviceId, msPerItem, isNvidia });
+            candidates.push({ deviceId, msPerItem, isNvidia });
         } catch (e) {
             if (e.message.includes('adapter') || e.message.includes('deviceId') || e.message.includes('DXGI')) break;
+        } finally {
+            await disposeModel(model);
         }
     }
     if (!candidates.length) throw new Error('No DML adapter available');
@@ -113,7 +123,8 @@ async function probeBestDmlAdapter(dtype) {
     const nvidiaTied = tied.find(c => c.isNvidia);
     const best = nvidiaTied || fastest;
     if (best !== fastest) console.error(`  tiebreak: NVIDIA deviceId=${best.deviceId} preferred over fastest deviceId=${fastest.deviceId}`);
-    return best;
+    const model = await tryLoadWith('dml', dtype, best.deviceId);
+    return { model, deviceId: best.deviceId, msPerItem: best.msPerItem };
 }
 
 async function loadFromCache() {

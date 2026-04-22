@@ -37,20 +37,25 @@ async function probeDmlAdapters(dtype) {
         } catch { return null; }
     };
     const results = [];
+    let priorMem = nvMem();
     for (let deviceId = 0; deviceId < DML_MAX_ADAPTERS; deviceId++) {
+        let model = null;
         try {
-            const memBefore = nvMem();
-            const model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+            model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
                 device: 'dml', dtype,
                 session_options: { executionProviders: [{ name: 'dml', deviceId }] },
             });
             const msPerItem = await benchModel(model);
             const memAfter = nvMem();
-            const nvidiaDelta = (memBefore !== null && memAfter !== null) ? memAfter - memBefore : 0;
+            const nvidiaDelta = (priorMem !== null && memAfter !== null) ? memAfter - priorMem : 0;
             const isNvidia = nvidiaDelta >= 50;
+            priorMem = memAfter;
             results.push({ deviceId, msPerItem, isNvidia, nvidiaDelta });
         } catch (e) {
             if (e.message.includes('adapter') || e.message.includes('deviceId') || e.message.includes('DXGI')) break;
+        } finally {
+            try { if (model?.dispose) await model.dispose(); } catch {}
+            try { if (model?.model?.dispose) await model.model.dispose(); } catch {}
         }
     }
     return results;
