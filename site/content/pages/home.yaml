@@ -1,0 +1,23 @@
+id: home
+title: Home
+hero:
+  heading: "codebasesearch"
+  subheading: "codebase-wide semantic search"
+  body: "index a whole codebase, ask it questions in english. companion to rs-search for the JS side."
+  badges:
+    - { label: "search" }
+    - { label: "codebase" }
+    - { label: "data" }
+  ctas:
+    - { label: "GitHub", href: "https://github.com/AnEntrypoint/codebasesearch", primary: true }
+    - { label: "247420", href: "https://247420.xyz" }
+features:
+  heading: "Why codebasesearch"
+  items:
+    - { name: "search", desc: "flagship trait of codebasesearch." }
+    - { name: "codebase", desc: "core capability of codebasesearch." }
+quickstart:
+  heading: Quick start
+  lines:
+    - { kind: "cmt", text: "# source" }
+    - { kind: "cmd", text: "git clone https://github.com/AnEntrypoint/codebasesearch.git" }

@@ -1,0 +1,16 @@
+title: "codebasesearch"
+tagline: "codebase-wide semantic search"
+description: "index a whole codebase, ask it questions in english. companion to rs-search for the JS side."
+repo: "https://github.com/AnEntrypoint/codebasesearch"
+url: "https://anentrypoint.github.io/codebasesearch"
+year: 2026
+keywords:
+  - "search"
+  - "codebase"
+  - "247420"
+  - "anentrypoint"
+accent_from: "#79c0ff"
+accent_to: "#bc8cff"
+glyph: "⌗"
+code: "042"
+category: "data"

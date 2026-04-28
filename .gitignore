@@ -37,3 +37,7 @@ Thumbs.db
 .plugkit-browser-profile/
 .plugkit-browser-profile-*/
 .plugkit-agent-worktree/
+dist/
+.gm/
+.codeinsight/
+rs-learn.db
