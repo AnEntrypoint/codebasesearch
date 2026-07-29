@@ -25,7 +25,6 @@ Thumbs.db
 
 # Temporary files
 *.tmp
-.env.local
 .glootie-stop-verified
 .gm-stop-verified
 
@@ -41,3 +40,4 @@ dist/
 .gm/
 .codeinsight/
 rs-learn.db
+config.bat
