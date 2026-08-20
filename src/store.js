@@ -1,3 +1,4 @@
+import { createEmbedded } from 'busybase/embedded';
 import { connect } from 'vectordb';
 import { join } from 'path';
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
@@ -18,15 +19,14 @@ function saveMtimeIndex(map) {
   writeFileSync(mtimeIndexPath, JSON.stringify(map), 'utf8');
 }
 
-let dbConnection = null;
+let bbClient = null;
+let vdbConnection = null;
 let tableRef = null;
-let isFirstBatch = true;
 let vectorSearchCache = new Map();
 let mtimeCache = null;
 let mtimeDirty = false;
 
 export async function initStore(dbPath) {
-  // Ensure directory exists
   const dbDir = join(dbPath, 'lancedb');
   if (!existsSync(dbDir)) {
     mkdirSync(dbDir, { recursive: true });
@@ -35,12 +35,8 @@ export async function initStore(dbPath) {
   mtimeIndexPath = join(dbPath, 'mtime-index.json');
 
   try {
-    // Connect to LanceDB (embedded, file-based, no network)
-    // Use absolute path for Windows compatibility
-    dbConnection = await connect({
-      uri: dbDir
-    });
-    isFirstBatch = true;
+    bbClient = await createEmbedded({ dir: dbDir });
+    vdbConnection = await connect({ uri: dbDir });
     console.error('Vector store initialized');
     return true;
   } catch (e) {
@@ -50,17 +46,13 @@ export async function initStore(dbPath) {
 }
 
 export async function getTable() {
-  if (!dbConnection) {
+  if (!vdbConnection) {
     throw new Error('Store not initialized. Call initStore first.');
   }
 
-  const tableName = 'code_chunks';
-
   try {
-    // Try to open existing table
-    tableRef = await dbConnection.openTable(tableName);
-  } catch (e) {
-    // Table doesn't exist, will be created on first insert
+    tableRef = await vdbConnection.openTable('code_chunks');
+  } catch {
     tableRef = null;
   }
 
@@ -68,7 +60,7 @@ export async function getTable() {
 }
 
 export async function upsertChunks(chunks) {
-  if (!dbConnection) {
+  if (!bbClient) {
     throw new Error('Store not initialized');
   }
 
@@ -76,8 +68,8 @@ export async function upsertChunks(chunks) {
     return;
   }
 
-  const tableName = 'code_chunks';
   const data = chunks.map(chunk => ({
+    id: `${chunk.file_path}::${chunk.chunk_index}`,
     file_path: String(chunk.file_path),
     chunk_index: Number(chunk.chunk_index),
     content: String(chunk.content),
@@ -88,22 +80,17 @@ export async function upsertChunks(chunks) {
   }));
 
   try {
-    let table = null;
+    const res = await bbClient.from('code_chunks').insert(data);
+    if (res.error) throw new Error(res.error.message);
 
-    try {
-      table = await dbConnection.openTable(tableName);
-      await table.add(data);
-    } catch (e) {
-      if (isFirstBatch) {
-        table = await dbConnection.createTable(tableName, data);
-      } else {
-        console.error('Failed to add to table:', e.message);
-        throw e;
+    if (vdbConnection) {
+      try {
+        tableRef = await vdbConnection.openTable('code_chunks');
+        await tableRef.add(data);
+      } catch {
+        tableRef = await vdbConnection.createTable('code_chunks', data);
       }
     }
-    isFirstBatch = false;
-
-    tableRef = table;
 
     if (mtimeCache === null) mtimeCache = loadMtimeIndex();
     for (const chunk of data) mtimeCache[chunk.file_path] = chunk.mtime;
@@ -118,7 +105,7 @@ export async function upsertChunks(chunks) {
 
 export async function searchSimilar(queryEmbedding, limit = 10) {
   if (!tableRef) {
-    if (!dbConnection) {
+    if (!vdbConnection) {
       console.error('No database connection');
       return [];
     }
@@ -216,10 +203,9 @@ export async function closeStore() {
     saveMtimeIndex(mtimeCache);
     mtimeDirty = false;
   }
-  if (dbConnection) {
-    dbConnection = null;
-    tableRef = null;
-  }
+  bbClient = null;
+  vdbConnection = null;
+  tableRef = null;
 }
 
 export function flushMtimeIndex() {

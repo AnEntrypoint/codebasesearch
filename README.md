@@ -1,6 +1,6 @@
 # codebasesearch
 
-Ultra-simple semantic code search with Jina embeddings and LanceDB. Supports both CLI and MCP protocol interfaces.
+Ultra-simple semantic code search with Jina embeddings and BusyBase (LanceDB). Supports both CLI and MCP protocol interfaces.
 
 ## Quick Start
 
@@ -22,7 +22,7 @@ claude mcp add -s user codebasesearch -- bunx codebasesearch
 ## Features
 
 - **Semantic search** across entire repositories using Jina embeddings (512-dim vectors)
-- **Embedded vector database** (LanceDB) - no external servers or setup required
+- **Embedded vector database** (BusyBase/LanceDB) - no external servers or setup required
 - **Auto-indexing** - automatically scans and indexes repository before each search
 - **Comprehensive file filtering** - respects .gitignore, ignores build artifacts, node_modules, dependencies across all languages; includes 102 code/markup/styling file types
 - **Single-shot execution** - no persistent processes, no background daemons
